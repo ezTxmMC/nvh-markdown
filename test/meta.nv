@@ -1,0 +1,33 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+method show(string source) {
+    var pairs = markdown.frontmatter(source)
+    println "frontmatter:"
+    for (key in pairs.keys()) {
+        println "  " + key + " = [" + pairs[key] + "]"
+    }
+    println "body: [" + markdown.body(source).replace("\n", "\\n") + "]"
+}
+
+method outline(string source) {
+    for (heading in markdown.headings(source)) {
+        println "h" + heading.level + " #" + heading.id + " " + heading.text
+    }
+}
+
+method main {
+    show("---\ntitle: Control flow\ndescription: \"if, while: for\"\nname: 'Ada'\nempty:\nbad key: x\n# comment: no\n---\n# Body\n")
+    show("no frontmatter\n---\nnot: meta\n---")
+    show("---\nunterminated: yes\n\ntext")
+    show("---\r\ntitle: CRLF\r\n---\r\nBody")
+    show("")
+    println markdown.slug("Hello, World! It's 2026 — ünï_code  ")
+    println markdown.slug("   ")
+    println markdown.slug("a--b  c")
+    outline("# One\n## Two\n## Two\n### *Three* `code`\n# One\n#\n# " + chr(1) + "0" + chr(2) + "\nSetext\n---\n```\n# not a heading\n```")
+    outline("# " + chr(1) + "0" + chr(2) + " {#intro}\n## Name " + chr(1) + "1" + chr(2) + " {#api_v2}\n## Plain {#}\n## Plain {# x}\n### Same\n### Other {#same}")
+    println markdown.render("# " + chr(1) + "0" + chr(2) + " {#intro}")
+    println markdown.text("# Title\n\nSome **bold** text &amp; <b>tags</b>.\n\n- a\n- b")
+}

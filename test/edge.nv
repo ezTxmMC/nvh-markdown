@@ -1,0 +1,32 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+// Broken or hostile Markdown must render something and never stop the program.
+method main {
+    var inputs = ["[", "]", "[]", "[](", "[a](", "[a](b", "![", "![a", "![a](", "`", "``", "*", "**", "***", "_", "__", "~", "~~", "<", "<a", "<a href=\"", "&", "&#", "&;",
+        "\\", ">", "> >", "- ", "1.", "1)", "#", "####### x", "|", "||", "|-|", "| a |\n|-|", ":::", ":::note", ":::note\n", "```", "~~~\n", "    ", "\t", "-\n-\n-", "* * *\n*",
+        "[a]: ", "[a]:\n[a]", "a\n===\n===", "<!--", "<!-- x", "<div>", "</div>", "<div", "> - > - >", "- - - - a", "1. 1. 1. a", "[[[[a]]]]", "((((", "*a**b***c*d**e*"]
+    var count = 0
+    for (input in inputs) {
+        var html = markdown.render(input)
+        markdown.headings(input)
+        markdown.text(input)
+        count = count + 1
+    }
+    println "rendered " + count + " broken inputs"
+    println markdown.render("*a**b***c*d**e*")
+    println markdown.render("a" + strings_repeat("*", 50) + "b")
+    println markdown.render(strings_repeat("> ", 30) + "deep")
+    println markdown.render(strings_repeat("- ", 20) + "deep")
+}
+
+method strings_repeat(string text, integer times): string {
+    var parts = []
+    var index = 0
+    while (index < times) {
+        parts.append(text)
+        index = index + 1
+    }
+    return parts.join("")
+}

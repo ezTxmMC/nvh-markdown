@@ -1,0 +1,61 @@
+package escape
+
+// Text for HTML: & < > " become entities. The marker characters of .nvmd (chr(1), chr(2)) are
+// ordinary characters here and pass through.
+method htmlEscape(string source): string {
+    var result = source
+    if (result.contains("&")) {
+        result = result.replace("&", "&amp;")
+    }
+    if (result.contains("<")) {
+        result = result.replace("<", "&lt;")
+    }
+    if (result.contains(">")) {
+        result = result.replace(">", "&gt;")
+    }
+    if (result.contains("\"")) {
+        result = result.replace("\"", "&quot;")
+    }
+    return result
+}
+
+// The reverse of htmlEscape for the entities the renderer itself writes.
+method htmlUnescape(string source): string {
+    if (source.contains("&") == false) {
+        return source
+    }
+    return source.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&")
+}
+
+final ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+method isAsciiPunctuation(string character): bool {
+    return character.length() == 1 && ASCII_PUNCTUATION.contains(character)
+}
+
+method isBlankCharacter(string character): bool {
+    return character == " " || character == "\t" || character == "\n" || character == "\r"
+}
+
+method isWordCharacter(string character): bool {
+    return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z") || (character >= "0" && character <= "9")
+}
+
+method isDigitCharacter(string character): bool {
+    return character >= "0" && character <= "9"
+}
+
+// Novus has no null literal: a bare return yields nil, and typeOf(nil) is "unknown".
+final NOTHING_TYPE = "unknown"
+
+method nothing(): object {
+    return
+}
+
+method isNothing(object value): bool {
+    return typeOf(value) == NOTHING_TYPE
+}
+
+method isSomething(object value): bool {
+    return typeOf(value) != NOTHING_TYPE
+}

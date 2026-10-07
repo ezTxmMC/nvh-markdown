@@ -1,0 +1,26 @@
+Intro {1 + 1}
+
+{#if true}
+  indented **segment**
+  - item {2}
+{:else}
+other
+{/if}
+
+{#for name, i in ["a", "b"]}
+- {i}: {name}
+{/for}
+
+<Callout
+    type="warning">
+Children are *Markdown*.
+</Callout>
+
+~~~nv
+println "${x} { } stay"
+~~~
+
+<?nv var total = 3 ?>
+
+{@html "<b>raw</b>"}
+Quote " and \ backslash and ${dollar}

@@ -1,0 +1,2 @@
+exit 1
+e2e_check/Broken.nvmd:4: unknown variable 'missingName'

@@ -1,0 +1,12 @@
+package inline
+
+// A construct recognised at a position: the HTML it renders to and where the text goes on.
+define class Match {
+    string html
+    integer end
+
+    construct(string html, integer end) {
+        this.html = html
+        this.end = end
+    }
+}

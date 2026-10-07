@@ -1,0 +1,14 @@
+<?nv
+prop array headings = []
+prop integer minLevel = 2
+prop integer maxLevel = 3
+?>
+<nav class="toc" aria-label="Table of contents">
+    <ul class="toc-list">
+        {#for heading in headings}
+            {#if heading.level >= minLevel && heading.level <= maxLevel}
+                <li class="toc-item toc-level-{heading.level}"><a href="#{heading.id}">{heading.text}</a></li>
+            {/if}
+        {/for}
+    </ul>
+</nav>

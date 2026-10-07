@@ -1,0 +1,6 @@
+project "github.com/ezTxmMC/nvh-markdown-tests"
+version "0.0.0"
+main "smoke.nv"
+
+require "github.com/ezTxmMC/nvh-markdown"
+replace "github.com/ezTxmMC/nvh-markdown" ".."

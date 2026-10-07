@@ -1,0 +1,44 @@
+> *one* **two** ***three*** _four_ __five__ ~~six~~
+<p><em>one</em> <strong>two</strong> <em><strong>three</strong></em> <em>four</em> <strong>five</strong> <del>six</del></p>
+
+> a*b*c and a_b_c and **bold*mixed*bold**
+<p>a<em>b</em>c and a_b_c and <strong>bold<em>mixed</em>bold</strong></p>
+
+> *unclosed and **also and ~~tilde
+<p>*unclosed and **also and ~~tilde</p>
+
+> snake_case_word and 2 * 3 * 4
+<p>snake_case_word and 2 * 3 * 4</p>
+
+> `code` and ``co`de`` and ` spaced ` and `unclosed
+<p><code>code</code> and <code>co`de</code> and <code>spaced</code> and `unclosed</p>
+
+> [link](http://a.b/c?d=1&e=2 "The *title*") and [empty]() and ![alt *x*](img.png)
+<p><a href="http://a.b/c?d=1&amp;e=2" title="The *title*">link</a> and <a href="">empty</a> and <img src="img.png" alt="alt x" /></p>
+
+> [ref][r] and [r] and [r][] and [missing]\n\n[r]: http://ref.example 'Ref'
+<p><a href="http://ref.example" title="Ref">ref</a> and <a href="http://ref.example" title="Ref">r</a> and <a href="http://ref.example" title="Ref">r</a> and [missing]</p>
+
+> <https://auto.link> and <me@mail.example> and https://bare.example/path. And (https://paren.example/a).
+<p><a href="https://auto.link">https://auto.link</a> and <a href="mailto:me@mail.example">me@mail.example</a> and <a href="https://bare.example/path">https://bare.example/path</a>. And (<a href="https://paren.example/a">https://paren.example/a</a>).</p>
+
+> a & b &amp; c &#35; &bogus d &copy;
+<p>a &amp; b &amp; c &#35; &amp;bogus d &copy;</p>
+
+> 1 < 2 > 1 <script>alert(1)</script> <b class="x">bold</b> <!-- note --> <Unknown/>
+<p>1 &lt; 2 &gt; 1 &lt;script&gt;alert(1)&lt;/script&gt; <b class="x">bold</b> <!-- note --> &lt;Unknown/&gt;</p>
+
+> line one  \nline two\\nline three\nline four
+<p>line one<br />
+line two<br />
+line three
+line four</p>
+
+> escaped \* \_ \` \[ \\ \a
+<p>escaped * _ ` [ \ \a</p>
+
+> [javascript](javascript:alert(1)) [ok](/rel)
+<p><a href="#">javascript</a> <a href="/rel">ok</a></p>
+
+> quote " and 'single' and unicode äöü € 日本語
+<p>quote &quot; and 'single' and unicode äöü € 日本語</p>

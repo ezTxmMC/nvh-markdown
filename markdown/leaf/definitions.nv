@@ -1,0 +1,65 @@
+package leaf
+
+import markdown/escape
+import markdown/model
+
+// Link reference definitions `[label]: url "title"` are collected first and removed from the text,
+// so references may come before the definition.
+method collectDefinitions(array<string> lines, Context context): array<string> {
+    var kept = []
+    var fence = nothing()
+    for (line in lines) {
+        if (isSomething(fence)) {
+            kept.append(line)
+            if (closesFence(line, fence)) {
+                fence = nothing()
+            }
+            continue
+        }
+        fence = fenceOf(line)
+        if (isNothing(fence) && defineReference(line, context)) {
+            continue
+        }
+        kept.append(line)
+    }
+    return kept
+}
+
+method defineReference(string line, Context context): bool {
+    var body = line.trim()
+    if (indentOf(line) > MAX_BLOCK_INDENT || body.startsWith("[") == false) {
+        return false
+    }
+    var close = body.indexOf("]:")
+    if (close < 2) {
+        return false
+    }
+    var rest = body.substring(close + 2, body.length()).trim()
+    if (rest == "") {
+        return false
+    }
+    var space = rest.indexOf(" ")
+    var url = rest
+    var title = ""
+    if (space > 0) {
+        url = rest.substring(0, space)
+        title = unquoteTitle(rest.substring(space + 1, rest.length()).trim())
+    }
+    if (url.startsWith("<") && url.endsWith(">")) {
+        url = url.substring(1, url.length() - 1)
+    }
+    context.define(body.substring(1, close), url, title)
+    return true
+}
+
+method unquoteTitle(string raw): string {
+    if (raw.length() < 2) {
+        return raw
+    }
+    var first = raw.charAt(0)
+    var last = raw.charAt(raw.length() - 1)
+    if ((first == "\"" && last == "\"") || (first == "'" && last == "'") || (first == "(" && last == ")")) {
+        return raw.substring(1, raw.length() - 1)
+    }
+    return raw
+}

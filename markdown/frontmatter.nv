@@ -1,0 +1,82 @@
+package markdown
+
+final FRONTMATTER_FENCE = "---"
+
+// The line index of the closing fence of the frontmatter, -1 when the source has none.
+method frontmatterEnd(array<string> lines): integer {
+    if (lines.length() == 0 || lines[0].trim() != FRONTMATTER_FENCE) {
+        return -1
+    }
+    var index = 1
+    while (index < lines.length()) {
+        if (lines[index].trim() == FRONTMATTER_FENCE) {
+            return index
+        }
+        index = index + 1
+    }
+    return -1
+}
+
+// The `key: value` pairs between the leading `---` lines.
+method frontmatter(string source): map<string, string> {
+    var pairs = {}
+    var lines = source.replace("\r\n", "\n").split("\n")
+    var end = frontmatterEnd(lines)
+    var index = 1
+    while (index < end) {
+        readPair(lines[index], pairs)
+        index = index + 1
+    }
+    return pairs
+}
+
+method readPair(string line, map<string, string> pairs) {
+    var colon = line.indexOf(":")
+    if (colon < 1 || line.startsWith("#")) {
+        return
+    }
+    var key = line.substring(0, colon).trim()
+    if (isKey(key) == false) {
+        return
+    }
+    pairs[key] = unquote(line.substring(colon + 1, line.length()).trim())
+}
+
+method isKey(string key): bool {
+    if (key == "") {
+        return false
+    }
+    for (character in key) {
+        if (isWordCharacter(character) == false && character != "_") {
+            return false
+        }
+    }
+    return true
+}
+
+method unquote(string value): string {
+    if (value.length() < 2) {
+        return value
+    }
+    var first = value.charAt(0)
+    if ((first == "\"" || first == "'") && value.endsWith(first)) {
+        return value.substring(1, value.length() - 1)
+    }
+    return value
+}
+
+// The source without its frontmatter.
+method body(string source): string {
+    var lines = source.replace("\r\n", "\n").split("\n")
+    var end = frontmatterEnd(lines)
+    if (end < 0) {
+        return source
+    }
+    var rest = []
+    var index = end + 1
+    while (index < lines.length()) {
+        rest.append(lines[index])
+        index = index + 1
+    }
+    return rest.join("\n")
+}

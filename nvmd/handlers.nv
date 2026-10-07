@@ -1,0 +1,60 @@
+package nvmd
+
+// An HTML block (a line that starts with a lower-case tag, up to the next blank line) that wires up the
+// page - `@click="..."`, `bind="..."`, `class:name={...}` - is nvh and not Markdown: the Markdown
+// renderer would print the attributes as they are and the handler would never run. Such a block
+// is passed through unchanged; `{expr}`, `{#if}` and the rest of nvh work inside it.
+
+// The last line of the handler block that starts at `index`; before `index` when the line starts none.
+method handlerBlockEnd(array<string> lines, integer index): integer {
+    if (startsHtmlBlock(lines[index].trim()) == false) {
+        return index - 1
+    }
+    var end = index
+    while (end + 1 < lines.length() && isBlank(lines[end + 1]) == false) {
+        end = end + 1
+    }
+    if (hasHandler(lines, index, end)) {
+        return end
+    }
+    return index - 1
+}
+
+method startsHtmlBlock(string trimmed): bool {
+    return trimmed.length() > 1 && trimmed.charAt(0) == "<" && trimmed.charAt(1) >= "a" && trimmed.charAt(1) <= "z"
+}
+
+method hasHandler(array<string> lines, integer from, integer to): bool {
+    var index = from
+    while (index <= to) {
+        if (hasHandlerAttribute(lines[index])) {
+            return true
+        }
+        index = index + 1
+    }
+    return false
+}
+
+// ` @event=`, ` @event.modifier=`, ` bind=` or ` class:name` inside a tag of the line.
+method hasHandlerAttribute(string line): bool {
+    if (line.contains(" bind=") || line.contains(" class:")) {
+        return true
+    }
+    var at = line.indexOf(" @")
+    while (at >= 0) {
+        if (isEventName(line, at + 2)) {
+            return true
+        }
+        at = line.indexOf(" @", at + 2)
+    }
+    return false
+}
+
+// letters, digits, `.` and `-` followed by `=` or `{`: the name of an event attribute.
+method isEventName(string line, integer from): bool {
+    var i = from
+    while (i < line.length() && (isNameStart(line.charAt(i)) || line.charAt(i) == "." || line.charAt(i) == "-")) {
+        i = i + 1
+    }
+    return i > from && i < line.length() && line.charAt(i) == "="
+}

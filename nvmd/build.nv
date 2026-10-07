@@ -1,0 +1,111 @@
+package nvmd
+
+import os
+
+// Translating files: `name.nvmd` becomes `name.nvh` next to it. A .nvh that was not generated is never
+// overwritten or removed.
+
+final SOURCE_EXTENSION = ".nvmd"
+final OUTPUT_EXTENSION = ".nvh"
+
+// What a build did.
+define class BuildReport {
+    array<string> written
+    array<string> unchanged
+    array<string> removed
+
+    construct() {
+        this.written = []
+        this.unchanged = []
+        this.removed = []
+    }
+
+    method total(): integer {
+        return this.written.length() + this.unchanged.length()
+    }
+}
+
+// The .nvh file that belongs to a .nvmd file.
+method outputFor(string source): string {
+    return source.substring(0, source.length() - SOURCE_EXTENSION.length()) + OUTPUT_EXTENSION
+}
+
+// Every .nvmd file of the paths: a file as it is, a folder searched below (hidden folders are skipped).
+method findSources(array<string> paths): array<string> {
+    var found = []
+    for (path in paths) {
+        collect(path, found)
+    }
+    return found
+}
+
+method collect(string path, array<string> found) {
+    if (os.isDir(path)) {
+        for (entry in os.listDir(path)) {
+            collectEntry(path, entry, found)
+        }
+        return
+    }
+    if (path.endsWith(SOURCE_EXTENSION)) {
+        found.append(path)
+    }
+}
+
+method collectEntry(string folder, string entry, array<string> found) {
+    if (entry.startsWith(".")) {
+        return
+    }
+    collect(folder + "/" + entry, found)
+}
+
+// Translates every source; `force` writes files whose content did not change as well.
+method build(array<string> paths, bool force): BuildReport {
+    var report = BuildReport()
+    for (source in findSources(paths)) {
+        buildOne(source, force, report)
+    }
+    return report
+}
+
+method buildOne(string source, bool force, BuildReport report) {
+    var target = outputFor(source)
+    var text = translate(os.readFile(source), source)
+    if (os.exists(target) && isGenerated(os.readFile(target)) == false) {
+        fail(source, 0, target + " exists and was not generated from a .nvmd file: it is not overwritten")
+    }
+    if (force == false && os.exists(target) && os.readFile(target) == text) {
+        report.unchanged.append(target)
+        return
+    }
+    os.writeFile(target, text)
+    report.written.append(target)
+}
+
+// Removes the .nvh files that a build wrote below the paths, also those whose .nvmd is gone.
+method clean(array<string> paths): BuildReport {
+    var report = BuildReport()
+    for (path in paths) {
+        cleanPath(path, report)
+    }
+    return report
+}
+
+method cleanPath(string path, BuildReport report) {
+    if (os.isDir(path)) {
+        for (entry in os.listDir(path)) {
+            cleanEntry(path, entry, report)
+        }
+        return
+    }
+    if (path.endsWith(OUTPUT_EXTENSION) && os.isFile(path) && isGenerated(os.readFile(path))) {
+        os.remove(path)
+        report.removed.append(path)
+    }
+}
+
+method cleanEntry(string folder, string entry, BuildReport report) {
+    if (entry.startsWith(".")) {
+        return
+    }
+    cleanPath(folder + "/" + entry, report)
+}

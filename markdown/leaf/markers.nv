@@ -1,0 +1,93 @@
+package leaf
+
+import markdown/escape
+
+final MAX_ORDERED_DIGITS = 9
+final MAX_MARKER_PADDING = 4
+
+// The marker at the start of a list item.
+define class ListMarker {
+    bool ordered
+    string kind
+    integer start
+    integer contentIndent
+    string content
+
+    construct(bool ordered, string kind, integer start, integer contentIndent, string content) {
+        this.ordered = ordered
+        this.kind = kind
+        this.start = start
+        this.contentIndent = contentIndent
+        this.content = content
+    }
+
+    // Items of one list share the bullet character or the delimiter after the number.
+    method sameList(ListMarker other): bool {
+        return this.ordered == other.ordered && this.kind == other.kind
+    }
+}
+
+// `- item`, `* item`, `+ item`, `1. item`, `1) item`: nothing for any other line.
+method parseListMarker(string line): ListMarker {
+    var indent = indentOf(line)
+    if (indent > MAX_BLOCK_INDENT || indent >= line.length()) {
+        return
+    }
+    var rest = line.substring(indent, line.length())
+    var width = markerWidth(rest)
+    if (width == 0) {
+        return
+    }
+    var afterMarker = rest.substring(width, rest.length())
+    if (afterMarker != "" && afterMarker.startsWith(" ") == false) {
+        return
+    }
+    var padding = indentOf(afterMarker)
+    if (afterMarker.trim() == "" || padding > MAX_MARKER_PADDING) {
+        padding = 1
+    }
+    var content = afterMarker.substring(min2(padding, afterMarker.length()), afterMarker.length())
+    var ordered = isDigitCharacter(rest.charAt(0))
+    var start = 1
+    if (ordered) {
+        start = parseInt(rest.substring(0, width - 1))
+    }
+    return ListMarker(ordered, rest.charAt(width - 1), start, indent + width + padding, content)
+}
+
+method min2(integer left, integer right): integer {
+    return smaller(left, right)
+}
+
+// The length of the marker that starts `rest` (`-`, `12.`), 0 when there is none.
+method markerWidth(string rest): integer {
+    var first = rest.charAt(0)
+    if (first == "-" || first == "+" || first == "*") {
+        return 1
+    }
+    var digits = 0
+    while (digits < rest.length() && isDigitCharacter(rest.charAt(digits))) {
+        digits = digits + 1
+    }
+    if (digits == 0 || digits > MAX_ORDERED_DIGITS || digits >= rest.length()) {
+        return 0
+    }
+    var delimiter = rest.charAt(digits)
+    if (delimiter == "." || delimiter == ")") {
+        return digits + 1
+    }
+    return 0
+}
+
+// Can the line interrupt a paragraph? Fences, headings, quotes, containers, HTML blocks and
+// the lists that cannot be mistaken for text (a bullet, or an ordered list that starts at 1).
+method interruptsParagraph(string line): bool {
+    if (isSomething(fenceOf(line)) || atxHeading(line).length() > 0 || isThematicBreak(line) || isQuoteLine(line)) {
+        return true
+    }
+    if (containerKind(line) != "" || startsHtmlBlock(line)) {
+        return true
+    }
+    var marker = parseListMarker(line)
+    return isSomething(marker) && marker.content != "" && (marker.ordered == false || marker.start == 1)
+}

@@ -1,0 +1,84 @@
+package block
+
+import markdown/escape
+import markdown/leaf
+import markdown/model
+
+// Markdown source -> HTML, the way a whole document is rendered. Also fills `context` with the
+// headings of the document.
+method renderDocument(string source, Context context): string {
+    var normalized = source.replace("\r\n", "\n").replace("\r", "\n").replace("\t", "    ")
+    var lines = collectDefinitions(normalized.split("\n"), context)
+    return renderBlocks(lines, context, false)
+}
+
+// A tight list item shows its paragraphs without <p>.
+method renderBlocks(array<string> lines, Context context, bool tight): string {
+    return BlockParser(lines, context, tight).run()
+}
+
+define class BlockParser {
+    array<string> lines
+    Context context
+    bool tight
+    integer position
+    array<string> output
+
+    construct(array<string> lines, Context context, bool tight) {
+        this.lines = lines
+        this.context = context
+        this.tight = tight
+        this.position = 0
+        this.output = []
+    }
+
+    method run(): string {
+        while (this.position < this.lines.length()) {
+            this.step()
+        }
+        return this.output.join("")
+    }
+
+    method step() {
+        if (isBlankLine(this.lines[this.position])) {
+            this.position = this.position + 1
+            return
+        }
+        var match = this.matchBlock()
+        if (isNothing(match)) {
+            match = matchParagraph(this.lines, this.position, this.context, this.tight)
+        }
+        this.output.append(match.html)
+        this.position = match.end
+    }
+
+    method matchBlock(): BlockMatch {
+        var at = this.position
+        var found = matchFence(this.lines, at)
+        if (isNothing(found)) {
+            found = matchContainer(this.lines, at, this.context)
+        }
+        if (isNothing(found)) {
+            found = matchAtxHeading(this.lines, at, this.context)
+        }
+        if (isNothing(found) && isThematicBreak(this.lines[at])) {
+            found = BlockMatch("<hr />\n", at + 1)
+        }
+        if (isNothing(found)) {
+            found = matchQuote(this.lines, at, this.context)
+        }
+        if (isNothing(found)) {
+            found = matchList(this.lines, at, this.context)
+        }
+        if (isNothing(found)) {
+            found = matchHtmlBlock(this.lines, at)
+        }
+        if (isNothing(found)) {
+            found = matchIndentedCode(this.lines, at)
+        }
+        if (isNothing(found)) {
+            found = matchTable(this.lines, at, this.context)
+        }
+        return found
+    }
+}

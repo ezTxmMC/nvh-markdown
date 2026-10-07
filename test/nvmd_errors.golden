@@ -1,0 +1,8 @@
+brace: exit 1 | error: fixtures/errors/brace.nvmd:1: unclosed '{' (write \{ for a literal brace)
+empty: exit 1 | error: fixtures/errors/empty.nvmd:1: empty {} (write \{ for a literal brace)
+inline_component: exit 1 | error: fixtures/errors/inline_component.nvmd:1: a component tag stands on its own line (found 'text</Callout>' after it)
+front_open: exit 1 | error: fixtures/errors/front_open.nvmd:1: unclosed frontmatter (missing ---)
+front_bad: exit 1 | error: fixtures/errors/front_bad.nvmd:2: frontmatter line 'not a pair' is not 'key: value'
+closer: exit 1 | error: fixtures/errors/closer.nvmd:2: write the `?>` that closes the header on a line of its own (the markdown import is added in front of it)
+header_open: exit 1 | error: fixtures/errors/header_open.nvmd:1: unclosed <?nv (missing ?>)
+tag_open: exit 1 | error: fixtures/errors/tag_open.nvmd:1: unclosed component tag (missing >)

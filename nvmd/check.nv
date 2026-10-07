@@ -1,0 +1,96 @@
+package nvmd
+
+import os
+
+// check: translate, let `novusc check` read the program, and point its errors at the .nvmd sources.
+// A line of the .nvh is the same line of the .nvmd; inside a Markdown segment the compiler only knows
+// where the segment's expression starts, so the message also names that first line.
+
+final CHECK_COMMAND = " check "
+final SEGMENT_OPENER = "{@html markdown."
+final SEGMENT_CLOSER = ")}"
+
+// What the compiler said (its output, errors mapped onto the .nvmd files) and its exit code.
+define class CheckResult {
+    integer code
+    string text
+
+    construct(integer code, string text) {
+        this.code = code
+        this.text = text
+    }
+}
+
+method check(array<string> paths, string novusc, string entry): CheckResult {
+    build(paths, false)
+    var run = os.run(novusc + CHECK_COMMAND + os.shellQuote(entry) + " 2>&1")
+    var lines = []
+    for (line in ("" + run["output"]).split(NEWLINE)) {
+        lines.append(mapLine(line))
+    }
+    return CheckResult(parseInt(run["code"]), lines.join(NEWLINE))
+}
+
+// `.../Page.nvh:12: message` becomes `.../Page.nvmd:12: message` when Page.nvh was generated from a .nvmd.
+method mapLine(string line): string {
+    var marker = line.indexOf(OUTPUT_EXTENSION + ":")
+    if (marker < 0) {
+        return line
+    }
+    var generated = markerStart(line, marker) + OUTPUT_EXTENSION
+    var source = outputToSource(generated)
+    if (os.isFile(generated) == false || os.isFile(source) == false || isGenerated(os.readFile(generated)) == false) {
+        return line
+    }
+    var after = line.substring(marker + OUTPUT_EXTENSION.length() + 1, line.length())
+    var number = leadingNumber(after)
+    var rest = after.substring(("" + number).length(), after.length())
+    return source + ":" + number + rest + segmentNote(os.readFile(generated), number)
+}
+
+// The path in front of `.nvh:` (the error line starts with "error: " or a path).
+method markerStart(string line, integer marker): string {
+    var start = line.substring(0, marker)
+    var space = start.length()
+    while (space > 0 && start.charAt(space - 1) != " ") {
+        space = space - 1
+    }
+    return start.substring(space, start.length())
+}
+
+method outputToSource(string generated): string {
+    return generated.substring(0, generated.length() - OUTPUT_EXTENSION.length()) + SOURCE_EXTENSION
+}
+
+method leadingNumber(string text): integer {
+    var end = 0
+    while (end < text.length() && text.charAt(end) >= "0" && text.charAt(end) <= "9") {
+        end = end + 1
+    }
+    return parseInt(text.substring(0, end))
+}
+
+// " (in the Markdown that starts at line 7)" when `number` lies inside a segment of the generated text.
+method segmentNote(string generated, integer number): string {
+    var start = segmentStart(generated.split(NEWLINE), number)
+    if (start == 0 || start == number) {
+        return ""
+    }
+    return " (in the Markdown segment that starts at line " + start + ")"
+}
+
+// The line on which the segment around line `number` starts, 0 when the line is no part of one.
+method segmentStart(array<string> rows, integer number): integer {
+    var open = 0
+    var index = 0
+    while (index < number && index < rows.length()) {
+        if (rows[index].startsWith(SEGMENT_OPENER) || rows[index].contains(" " + SEGMENT_OPENER) || rows[index].contains(">" + SEGMENT_OPENER)) {
+            open = index + 1
+        }
+        if (open > 0 && rows[index].endsWith(SEGMENT_CLOSER) && index + 1 < number) {
+            open = 0
+        }
+        index = index + 1
+    }
+    return open
+}

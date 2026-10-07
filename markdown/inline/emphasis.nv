@@ -1,0 +1,104 @@
+package inline
+
+import markdown/escape
+
+// Emphasis, strong text and strikethrough: the delimiter algorithm of CommonMark. Every matched
+// pair puts its tags into the delimiter runs; what stays unmatched is written as plain text.
+
+method resolveEmphasis(array<Piece> pieces): string {
+    var closer = 0
+    while (closer < pieces.length()) {
+        if (pieces[closer].isDelimiter() && pieces[closer].canClose) {
+            matchCloser(pieces, closer)
+        }
+        closer = closer + 1
+    }
+    var out = []
+    for (piece in pieces) {
+        out.append(piece.render())
+    }
+    return out.join("")
+}
+
+method matchCloser(array<Piece> pieces, integer closerIndex) {
+    var closer = pieces[closerIndex]
+    while (closer.count > 0) {
+        var openerIndex = findOpener(pieces, closerIndex)
+        if (openerIndex < 0) {
+            return
+        }
+        applyMatch(pieces, openerIndex, closerIndex)
+    }
+}
+
+method findOpener(array<Piece> pieces, integer closerIndex): integer {
+    var closer = pieces[closerIndex]
+    var index = closerIndex - 1
+    while (index >= 0) {
+        if (canPair(pieces[index], closer)) {
+            return index
+        }
+        index = index - 1
+    }
+    return -1
+}
+
+method canPair(Piece opener, Piece closer): bool {
+    if (opener.isDelimiter() == false || opener.mark != closer.mark || opener.canOpen == false || opener.count == 0) {
+        return false
+    }
+    if (closer.mark == "~") {
+        return opener.count >= 2 && closer.count >= 2
+    }
+    if (opener.canClose == false && closer.canOpen == false) {
+        return true
+    }
+    return (opener.originalCount + closer.originalCount) % 3 != 0 || (opener.originalCount % 3 == 0 && closer.originalCount % 3 == 0)
+}
+
+method applyMatch(array<Piece> pieces, integer openerIndex, integer closerIndex) {
+    var opener = pieces[openerIndex]
+    var closer = pieces[closerIndex]
+    var used = 1
+    var tag = "em"
+    if (closer.mark == "~") {
+        used = 2
+        tag = "del"
+    }
+    if (closer.mark != "~" && opener.count >= 2 && closer.count >= 2) {
+        used = 2
+        tag = "strong"
+    }
+    opener.count = opener.count - used
+    closer.count = closer.count - used
+    opener.openTags = "<" + tag + ">" + opener.openTags
+    closer.closeTags = closer.closeTags + "</" + tag + ">"
+    deactivateBetween(pieces, openerIndex, closerIndex)
+}
+
+method deactivateBetween(array<Piece> pieces, integer from, integer to) {
+    var index = from + 1
+    while (index < to) {
+        pieces[index].canOpen = false
+        pieces[index].canClose = false
+        index = index + 1
+    }
+}
+
+// Left/right flanking runs of CommonMark: can the run open or close emphasis?
+// `before` and `after` are the characters around the run ("" at the ends of the text).
+method delimiterPiece(string mark, integer count, string before, string after): Piece {
+    var beforeSpace = before == "" || isBlankCharacter(before)
+    var afterSpace = after == "" || isBlankCharacter(after)
+    var beforePunct = isAsciiPunctuation(before)
+    var afterPunct = isAsciiPunctuation(after)
+    var leftFlanking = afterSpace == false && (afterPunct == false || beforeSpace || beforePunct)
+    var rightFlanking = beforeSpace == false && (beforePunct == false || afterSpace || afterPunct)
+    var canOpen = leftFlanking
+    var canClose = rightFlanking
+    if (mark == "_") {
+        canOpen = leftFlanking && (rightFlanking == false || beforePunct)
+        canClose = rightFlanking && (leftFlanking == false || afterPunct)
+    }
+    return Piece("", mark, count, canOpen, canClose)
+}

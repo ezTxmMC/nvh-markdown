@@ -1,0 +1,31 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+// {expr} of a .nvmd file becomes chr(1) + index + chr(2) before rendering.
+method marker(integer index): string {
+    return chr(1) + index + chr(2)
+}
+
+method show(string source, array values) {
+    var html = markdown.render(source)
+    println html.replace(chr(1), "<M").replace(chr(2), ">")
+    println markdown.fill(html, values)
+}
+
+method main {
+    show("Hello " + marker(0) + "!", ["<World>"])
+    show("# " + marker(0) + " title", ["Doc"])
+    show("**" + marker(0) + "** and *" + marker(1) + "* and `code`", ["bold", 7])
+    show("[" + marker(0) + "](/x/" + marker(1) + ") ![" + marker(0) + "](" + marker(1) + ".png)", ["label", "id"])
+    show("| " + marker(0) + " | b |\n|---|---|\n| " + marker(1) + " | " + marker(0) + " |", ["h", "c"])
+    show("- " + marker(0) + "\n- [x] " + marker(1), ["one", "two"])
+    show("<span class=\"" + marker(0) + "\">" + marker(1) + "</span>", ["cls", "text"])
+    show("snake_" + marker(0) + "_case " + marker(0) + marker(1) + marker(0), ["a", "b"])
+    show("no markers & <b>", [])
+    show("missing " + marker(5) + " and " + marker(0), ["only"])
+    show("unset " + marker(0), [chr(0)])
+    println markdown.fill("broken " + chr(1) + "12", ["x"])
+    println markdown.fill("empty " + chr(1) + chr(2) + "|", ["x"])
+    println markdown.fill("number " + marker(0) + " " + marker(1), [42, true])
+}

@@ -1,0 +1,15 @@
+package main
+
+import os
+
+// Every error of the translator names file and line and stops with exit code 1.
+
+final CASES = ["brace", "empty", "inline_component", "front_open", "front_bad", "closer", "header_open", "tag_open"]
+
+method main {
+    var novusc = os.env("NOVUSC")
+    for (name in CASES) {
+        var result = os.run(novusc + " run ../nvmd.nv translate fixtures/errors/" + name + ".nvmd 2>&1")
+        println name + ": exit " + result["code"] + " | " + result["output"].trim()
+    }
+}

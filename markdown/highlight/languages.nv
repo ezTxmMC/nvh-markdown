@@ -1,0 +1,61 @@
+package highlight
+
+final C_LIKE_COMMENTS = ["//"]
+final HASH_COMMENTS = ["#"]
+
+final NOVUS_KEYWORDS = ["package", "import", "method", "define", "class", "based", "construct", "interface", "enum", "abstract",
+    "native", "async", "await", "thread", "virtual", "sync", "var", "final", "private", "return", "if", "else", "while", "for",
+    "in", "true", "false", "break", "continue", "this", "prop", "ref", "println", "print", "eprintln", "require", "replace",
+    "project", "version", "main", "lib", "output", "emit"]
+final NOVUS_TYPES = ["integer", "float", "string", "bool", "object", "array", "map", "void"]
+
+final C_KEYWORDS = ["auto", "break", "case", "const", "continue", "default", "do", "else", "enum", "extern", "for", "goto", "if",
+    "inline", "register", "return", "sizeof", "static", "struct", "switch", "typedef", "union", "volatile", "while", "NULL",
+    "true", "false"]
+final C_TYPES = ["char", "double", "float", "int", "long", "short", "signed", "unsigned", "void", "size_t", "bool", "uint8_t",
+    "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+
+final JS_KEYWORDS = ["async", "await", "break", "case", "catch", "class", "const", "continue", "default", "delete", "do", "else",
+    "export", "extends", "false", "finally", "for", "from", "function", "if", "import", "in", "instanceof", "let", "new", "null",
+    "of", "return", "static", "super", "switch", "this", "throw", "true", "try", "typeof", "undefined", "var", "while", "yield",
+    "interface", "type", "enum", "implements", "readonly"]
+final JS_TYPES = ["string", "number", "boolean", "any", "unknown", "void", "never", "object"]
+
+final SHELL_KEYWORDS = ["if", "then", "else", "elif", "fi", "for", "do", "done", "while", "case", "esac", "function", "in",
+    "export", "local", "return", "exit", "echo", "cd", "true", "false"]
+
+final DATA_KEYWORDS = ["true", "false", "null", "yes", "no", "on", "off"]
+
+// The language names (and aliases) a code fence may carry -> the highlighter's language.
+final LANGUAGE_ALIASES = {"nv": "nv", "novus": "nv", "nvh": "markup", "nvmd": "markup", "html": "markup", "xml": "markup",
+    "svg": "markup", "sh": "shell", "bash": "shell", "shell": "shell", "zsh": "shell", "console": "shell", "json": "json",
+    "c": "c", "h": "c", "cpp": "c", "js": "js", "javascript": "js", "ts": "js", "typescript": "js", "jsx": "js", "tsx": "js",
+    "toml": "toml", "yaml": "yaml", "yml": "yaml"}
+
+method canonicalLanguage(string name): string {
+    var key = name.toLower()
+    if (LANGUAGE_ALIASES.has(key) == false) {
+        return ""
+    }
+    return LANGUAGE_ALIASES[key]
+}
+
+// The spec of a canonical language; markup has its own scanner and is not here.
+method specFor(string language): LanguageSpec {
+    if (language == "nv") {
+        return LanguageSpec(NOVUS_KEYWORDS, NOVUS_TYPES, C_LIKE_COMMENTS, "\"").withBlockComments("/*", "*/")
+    }
+    if (language == "c") {
+        return LanguageSpec(C_KEYWORDS, C_TYPES, C_LIKE_COMMENTS, "\"'").withBlockComments("/*", "*/").withDirective("#")
+    }
+    if (language == "js") {
+        return LanguageSpec(JS_KEYWORDS, JS_TYPES, C_LIKE_COMMENTS, "\"'").withBlockComments("/*", "*/").withMultilineQuotes("`")
+    }
+    if (language == "shell") {
+        return LanguageSpec(SHELL_KEYWORDS, [], HASH_COMMENTS, "\"'").withoutCapitalizedTypes()
+    }
+    if (language == "json") {
+        return LanguageSpec(DATA_KEYWORDS, [], [], "\"").withoutCapitalizedTypes()
+    }
+    return LanguageSpec(DATA_KEYWORDS, [], HASH_COMMENTS, "\"'").withKeys()
+}

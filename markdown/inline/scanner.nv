@@ -1,0 +1,137 @@
+package inline
+
+import markdown/escape
+import markdown/model
+
+// Characters at which something other than plain text may start.
+final INLINE_SPECIALS = "\\`*_~[!<&\nh"
+
+// Inline Markdown -> HTML.
+method renderInline(string source, Context context): string {
+    return InlineScanner(source, context).run()
+}
+
+define class InlineScanner {
+    string source
+    Context context
+    integer position
+    array<Piece> pieces
+
+    construct(string source, Context context) {
+        this.source = source
+        this.context = context
+        this.position = 0
+        this.pieces = []
+    }
+
+    method run(): string {
+        while (this.position < this.source.length()) {
+            this.step()
+        }
+        return resolveEmphasis(this.pieces)
+    }
+
+    method step() {
+        var character = this.source.charAt(this.position)
+        if (INLINE_SPECIALS.contains(character) == false) {
+            this.takeText()
+            return
+        }
+        var match = this.matchAt(character)
+        if (isNothing(match)) {
+            this.takeLiteral(character)
+            return
+        }
+        this.pieces.append(textPiece(match.html))
+        this.position = match.end
+    }
+
+    // The construct that starts at the position, nothing when the character is only text.
+    method matchAt(string character): Match {
+        if (character == "\\") {
+            return matchBackslash(this.source, this.position)
+        }
+        if (character == "`") {
+            return this.codeOrBackticks()
+        }
+        if (character == "*" || character == "_" || character == "~") {
+            return this.delimiterRun(character)
+        }
+        if (character == "[" || (character == "!" && this.source.substring(this.position, this.position + 2) == "![")) {
+            return matchLink(this.source, this.position, this.context)
+        }
+        if (character == "<") {
+            return matchAngle(this.source, this.position)
+        }
+        if (character == "&") {
+            return matchEntity(this.source, this.position)
+        }
+        if (character == "\n") {
+            return this.lineBreak()
+        }
+        return matchBareUrl(this.source, this.position)
+    }
+
+    method takeText() {
+        var end = this.position
+        while (end < this.source.length() && INLINE_SPECIALS.contains(this.source.charAt(end)) == false) {
+            end = end + 1
+        }
+        this.pieces.append(textPiece(htmlEscape(this.source.substring(this.position, end))))
+        this.position = end
+    }
+
+    method takeLiteral(string character) {
+        this.pieces.append(textPiece(htmlEscape(character)))
+        this.position = this.position + 1
+    }
+
+    method codeOrBackticks(): Match {
+        var span = matchCodeSpan(this.source, this.position)
+        if (isSomething(span)) {
+            return span
+        }
+        var end = runOf(this.source, this.position, "`")
+        return Match(this.source.substring(this.position, end), end)
+    }
+
+    method delimiterRun(string mark): Match {
+        var end = runOf(this.source, this.position, mark)
+        var before = ""
+        if (this.position > 0) {
+            before = this.source.charAt(this.position - 1)
+        }
+        var after = ""
+        if (end < this.source.length()) {
+            after = this.source.charAt(end)
+        }
+        this.pieces.append(delimiterPiece(mark, end - this.position, before, after))
+        this.position = end
+        return Match("", end)
+    }
+
+    // Two spaces before the line end make a hard break; trailing spaces never show.
+    method lineBreak(): Match {
+        var hard = this.trimTrailingSpaces() >= 2
+        var next = skipSpaces(this.source, this.position + 1)
+        if (hard) {
+            return Match("<br />\n", next)
+        }
+        return Match("\n", next)
+    }
+
+    // Removes the spaces already written before the line end; returns how many there were.
+    method trimTrailingSpaces(): integer {
+        var count = 0
+        var index = this.position - 1
+        while (index >= 0 && this.source.charAt(index) == " ") {
+            count = count + 1
+            index = index - 1
+        }
+        var last = this.pieces.length() - 1
+        if (count > 0 && last >= 0 && this.pieces[last].isDelimiter() == false) {
+            this.pieces[last].html = this.pieces[last].html.substring(0, this.pieces[last].html.length() - count)
+        }
+        return count
+    }
+}

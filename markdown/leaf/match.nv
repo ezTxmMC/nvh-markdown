@@ -1,0 +1,12 @@
+package leaf
+
+// A block recognised at a line: the HTML it renders to and the first line after it.
+define class BlockMatch {
+    string html
+    integer end
+
+    construct(string html, integer end) {
+        this.html = html
+        this.end = end
+    }
+}

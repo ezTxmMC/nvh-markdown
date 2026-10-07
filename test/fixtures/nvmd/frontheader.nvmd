@@ -1,0 +1,9 @@
+---
+title: Both
+---
+<?nv
+import strings
+ref integer clicks = 0
+method hit() { clicks = clicks + 1 }
+?>
+{title}

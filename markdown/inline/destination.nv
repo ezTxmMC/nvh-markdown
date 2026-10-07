@@ -1,0 +1,109 @@
+package inline
+
+import markdown/escape
+
+// `(url "title")` after the opening parenthesis at `start - 1`.
+method inlineTarget(string source, integer start): LinkTarget {
+    var index = skipBlank(source, start)
+    var destination = readDestination(source, index)
+    if (isNothing(destination)) {
+        return
+    }
+    index = skipBlank(source, destination.end)
+    var title = ""
+    var titleEnd = titleClose(source, index)
+    if (titleEnd > index) {
+        title = source.substring(index + 1, titleEnd)
+        index = skipBlank(source, titleEnd + 1)
+    }
+    if (index >= source.length() || source.charAt(index) != ")") {
+        return
+    }
+    return LinkTarget(unescapeText(destination.html), unescapeText(title), index + 1)
+}
+
+// The destination as a Match: <angle bracketed> or bare.
+method readDestination(string source, integer index): Match {
+    if (index >= source.length() || source.charAt(index) != "<") {
+        var end = destinationEnd(source, index)
+        return Match(source.substring(index, end), end)
+    }
+    var close = source.indexOf(">", index)
+    if (close < 0) {
+        return
+    }
+    return Match(source.substring(index + 1, close), close + 1)
+}
+
+method skipBlank(string source, integer start): integer {
+    var index = start
+    while (index < source.length() && isBlankCharacter(source.charAt(index))) {
+        index = index + 1
+    }
+    return index
+}
+
+// A bare destination ends at a blank or at the parenthesis that closes the link.
+method destinationEnd(string source, integer start): integer {
+    var depth = 0
+    var index = start
+    while (index < source.length()) {
+        var character = source.charAt(index)
+        if (character == "\\") {
+            index = index + 2
+            continue
+        }
+        if (isBlankCharacter(character)) {
+            return index
+        }
+        if (character == "(") {
+            depth = depth + 1
+        }
+        if (character == ")") {
+            if (depth == 0) {
+                return index
+            }
+            depth = depth - 1
+        }
+        index = index + 1
+    }
+    return source.length()
+}
+
+// The index of the quote that closes a title opened at `start`, `start` when there is no title.
+method titleClose(string source, integer start): integer {
+    if (start >= source.length()) {
+        return start
+    }
+    var opener = source.charAt(start)
+    var closer = opener
+    if (opener == "(") {
+        closer = ")"
+    }
+    if (opener != "\"" && opener != "'" && opener != "(") {
+        return start
+    }
+    var close = source.indexOf(closer, start + 1)
+    if (close < 0) {
+        return start
+    }
+    return close
+}
+
+method unescapeText(string raw): string {
+    if (raw.contains("\\") == false) {
+        return raw
+    }
+    var parts = []
+    var index = 0
+    while (index < raw.length()) {
+        var character = raw.charAt(index)
+        if (character == "\\" && index + 1 < raw.length() && isAsciiPunctuation(raw.charAt(index + 1))) {
+            index = index + 1
+            character = raw.charAt(index)
+        }
+        parts.append(character)
+        index = index + 1
+    }
+    return parts.join("")
+}

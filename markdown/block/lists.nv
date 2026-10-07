@@ -1,0 +1,158 @@
+package block
+
+import markdown/escape
+import markdown/leaf
+import markdown/model
+
+// Bullet and ordered lists, with task items, nesting and tight/loose spacing.
+
+method matchList(array<string> lines, integer start, Context context): BlockMatch {
+    var first = parseListMarker(lines[start])
+    if (isNothing(first) || isThematicBreak(lines[start])) {
+        return
+    }
+    var items = []
+    var loose = false
+    var index = start
+    while (index < lines.length()) {
+        var marker = parseListMarker(lines[index])
+        if (isNothing(marker) || marker.sameList(first) == false || isThematicBreak(lines[index])) {
+            break
+        }
+        var item = collectItem(lines, index, marker)
+        items.append(item["lines"])
+        index = parseInt(item["end"])
+        var next = skipBlankLines(lines, index)
+        if (next > index && continuesList(lines, next, first)) {
+            loose = true
+        }
+        if (continuesList(lines, next, first) == false) {
+            break
+        }
+        index = next
+    }
+    return BlockMatch(listHtml(first, items, loose || hasLooseItem(items), context), index)
+}
+
+method continuesList(array<string> lines, integer index, ListMarker first): bool {
+    if (index >= lines.length() || isThematicBreak(lines[index])) {
+        return false
+    }
+    var marker = parseListMarker(lines[index])
+    return isSomething(marker) && marker.sameList(first)
+}
+
+method skipBlankLines(array<string> lines, integer start): integer {
+    var index = start
+    while (index < lines.length() && isBlankLine(lines[index])) {
+        index = index + 1
+    }
+    return index
+}
+
+// The lines of one item with the item's indentation removed: {"lines": [...], "end": next line}.
+method collectItem(array<string> lines, integer start, ListMarker marker): map<string, object> {
+    var content = [marker.content]
+    var index = start + 1
+    while (index < lines.length()) {
+        var line = lines[index]
+        if (isBlankLine(line)) {
+            var next = skipBlankLines(lines, index)
+            if (next >= lines.length() || indentOf(lines[next]) < marker.contentIndent) {
+                break
+            }
+            content.append("")
+            index = index + 1
+            continue
+        }
+        if (indentOf(line) >= marker.contentIndent) {
+            content.append(line.substring(marker.contentIndent, line.length()))
+            index = index + 1
+            continue
+        }
+        if (isLazyContinuation(line, content)) {
+            content.append(stripLeading(line))
+            index = index + 1
+            continue
+        }
+        break
+    }
+    return {"lines": content, "end": index}
+}
+
+method isLazyContinuation(string line, array<string> content): bool {
+    var last = content[content.length() - 1]
+    if (isBlankLine(last) || isSomething(parseListMarker(line))) {
+        return false
+    }
+    return interruptsParagraph(line) == false && isNothing(fenceOf(last))
+}
+
+// A blank line between two blocks of an item makes the whole list loose.
+method hasLooseItem(array<array<string>> items): bool {
+    for (item in items) {
+        var index = 1
+        while (index < item.length() - 1) {
+            if (item[index] == "" && item[index + 1] != "" && indentOf(item[index + 1]) == 0) {
+                return true
+            }
+            index = index + 1
+        }
+    }
+    return false
+}
+
+method listHtml(ListMarker first, array<array<string>> items, bool loose, Context context): string {
+    var tag = "ul"
+    var attributes = ""
+    if (first.ordered) {
+        tag = "ol"
+    }
+    if (first.ordered && first.start != 1) {
+        attributes = " start=\"" + ("" + first.start) + "\""
+    }
+    var parts = ["<" + tag + attributes + ">\n"]
+    for (item in items) {
+        parts.append(itemHtml(item, loose, context))
+    }
+    parts.append("</" + tag + ">\n")
+    return parts.join("")
+}
+
+method itemHtml(array<string> item, bool loose, Context context): string {
+    var task = taskState(item[0])
+    var lines = item
+    var prefix = ""
+    var className = ""
+    if (task != "-") {
+        lines = withoutTaskBox(item)
+        prefix = "<input type=\"checkbox\" disabled" + task + " /> "
+        className = " class=\"task-list-item\""
+    }
+    var body = renderBlocks(lines, context, loose == false)
+    if (loose == false) {
+        body = body.trim()
+    }
+    return "<li" + className + ">" + prefix + body + "</li>\n"
+}
+
+method withoutTaskBox(array<string> item): array<string> {
+    var lines = [item[0].substring(4, item[0].length())]
+    var index = 1
+    while (index < item.length()) {
+        lines.append(item[index])
+        index = index + 1
+    }
+    return lines
+}
+
+// The attribute a task box needs: " checked" for `[x] `, "" for `[ ] `; "-" when the item is no task.
+method taskState(string first): string {
+    if (first.startsWith("[x] ") || first.startsWith("[X] ")) {
+        return " checked"
+    }
+    if (first.startsWith("[ ] ")) {
+        return ""
+    }
+    return "-"
+}

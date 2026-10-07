@@ -1,0 +1,35 @@
+package main
+
+import os
+import "github.com/ezTxmMC/nvh-markdown/nvmd"
+
+// build: written / unchanged / forced, a hand-written .nvh is never touched, clean removes only generated files.
+
+final WORK = "work"
+
+method show(string label, BuildReport report) {
+    println label + ": written " + report.written.length() + ", unchanged " + report.unchanged.length() + ", removed " + report.removed.length()
+}
+
+method main {
+    os.removeAll(WORK)
+    os.mkdir(WORK + "/sub")
+    os.writeFile(WORK + "/a.nvmd", os.readFile("fixtures/nvmd/plain.nvmd"))
+    os.writeFile(WORK + "/sub/b.nvmd", os.readFile("fixtures/nvmd/front.nvmd"))
+    os.writeFile(WORK + "/hand.nvh", "<p>written by hand</p>\n")
+    os.writeFile(WORK + "/orphan.nvh", nvmd.translate("# gone\n", "orphan.nvmd"))
+    show("first", nvmd.build([WORK], false))
+    show("again", nvmd.build([WORK], false))
+    show("forced", nvmd.build([WORK], true))
+    os.writeFile(WORK + "/a.nvmd", "# changed\n")
+    show("changed", nvmd.build([WORK], false))
+    println "a.nvh starts: " + os.readFile(WORK + "/a.nvh").substring(0, 30)
+    os.writeFile(WORK + "/b.nvmd", "# b\n")
+    os.writeFile(WORK + "/b.nvh", "<p>mine</p>\n")
+    var refused = os.run(os.env("NOVUSC") + " run ../nvmd.nv build " + WORK + "/b.nvmd 2>&1")
+    println "refused: exit " + refused["code"] + " | " + refused["output"].trim()
+    println "hand-written kept: " + os.readFile(WORK + "/b.nvh").trim()
+    show("clean", nvmd.clean([WORK]))
+    println "hand.nvh kept: " + os.exists(WORK + "/hand.nvh") + ", a.nvh gone: " + (os.exists(WORK + "/a.nvh") == false) + ", orphan gone: " + (os.exists(WORK + "/orphan.nvh") == false)
+    os.removeAll(WORK)
+}

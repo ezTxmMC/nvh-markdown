@@ -1,0 +1,7 @@
+<?nv
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+prop string code = ""
+prop string language = ""
+?>
+<pre class="code-block" data-language={language}><code class="language-{language}">{@html markdown.highlight(language, code)}</code></pre>

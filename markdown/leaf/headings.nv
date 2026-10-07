@@ -1,0 +1,56 @@
+package leaf
+
+import markdown/escape
+import markdown/inline
+import markdown/model
+
+final HEADING_MAX_LEVEL = 6
+
+// ATX headings (`## Title`).
+method matchAtxHeading(array<string> lines, integer start, Context context): BlockMatch {
+    var heading = atxHeading(lines[start])
+    if (heading.length() == 0) {
+        return
+    }
+    return BlockMatch(headingHtml(parseInt(heading[0]), heading[1], context), start + 1)
+}
+
+// A heading with an id, an anchor around its text and an entry in the outline of the document.
+// A heading made of `{expr}` has no text to build an id from: `# {title} {#intro}` names it.
+method headingHtml(integer level, string source, Context context): string {
+    var named = splitHeadingId(source)
+    var inner = renderInline(named[0], context)
+    var plain = collapseWhitespace(stripMarkers(stripTags(inner)))
+    var base = named[1]
+    if (base == "") {
+        base = slugify(plain)
+    }
+    var id = context.uniqueId(base)
+    context.addHeading(level, id, plain)
+    var tag = "h" + ("" + level)
+    return "<" + tag + " id=\"" + id + "\"><a class=\"heading-anchor\" href=\"#" + id + "\">" + inner + "</a></" + tag + ">\n"
+}
+
+// [text, id]: the heading text without a trailing `{#id}`, and that id ("" when there is none).
+method splitHeadingId(string source): array<string> {
+    var trimmed = source.trim()
+    if (trimmed.endsWith("}") == false) {
+        return [source, ""]
+    }
+    var open = trimmed.length() - 2
+    while (open >= 0 && isHeadingIdCharacter(trimmed.charAt(open))) {
+        open = open - 1
+    }
+    if (open < 1 || trimmed.charAt(open) != "#" || trimmed.charAt(open - 1) != "{") {
+        return [source, ""]
+    }
+    var id = trimmed.substring(open + 1, trimmed.length() - 1)
+    if (id == "") {
+        return [source, ""]
+    }
+    return [trimmed.substring(0, open - 1).trim(), id]
+}
+
+method isHeadingIdCharacter(string character): bool {
+    return isWordCharacter(character) || character == "_" || character == "-"
+}

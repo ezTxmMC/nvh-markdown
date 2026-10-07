@@ -1,0 +1,32 @@
+package nvmd
+
+// .nvmd -> .nvh: Markdown with Novus in it becomes the HTML-with-Novus file that the nvh compiler
+// reads (specification: ../NVMD_SPEC.md). Line n of the .nvmd is line n of the .nvh, so errors of the
+// Novus compiler point at the right line of the source (a Markdown segment counts from its first line).
+
+// The .nvh source of a .nvmd source; `file` only names the source in error messages.
+method translate(string source, string file): string {
+    var lines = sourceLines(source)
+    var header = readHeader(lines, file)
+    var rows = header["rows"]
+    translateBody(lines, parseInt(header["next"]), file, rows)
+    if (header["opened"] == false) {
+        openFirstRow(rows)
+    }
+    return rows.join(NEWLINE)
+}
+
+// No frontmatter and no header: the first line carries the one that makes the markdown package known.
+method openFirstRow(array<string> rows) {
+    var opener = HEADER_OPENER + " " + GENERATED_MARKER + " " + MARKDOWN_IMPORT + " " + HEADER_CLOSER
+    if (rows.length() == 0) {
+        rows.append(opener)
+        return
+    }
+    rows[0] = opener + rows[0]
+}
+
+// Does the text of a file say that translate() wrote it?
+method isGenerated(string text): bool {
+    return text.trim().startsWith(HEADER_OPENER + " " + GENERATED_MARKER)
+}

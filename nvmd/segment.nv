@@ -1,0 +1,174 @@
+package nvmd
+
+// A Markdown segment becomes one nvh expression, spread over as many rows as the segment has lines:
+//
+//     {@html markdown.render("...")}                                   no {expr} inside
+//     {@html markdown.fill(markdown.render("..."), [expr0, expr1])}    with {expr} inside
+//
+// An inline {expr} is replaced by a marker the renderer passes through and fill() swaps for the
+// escaped value.
+
+final RENDER_CALL = "markdown.render("
+final FILL_CALL = "markdown.fill("
+
+// Appends the rows of `segment`, whose first line is line `first` of the source.
+method flushSegment(array<object> segment, string file, integer first, array<string> rows) {
+    if (segment.length() == 0) {
+        return
+    }
+    var texts = []
+    for (entry in segment) {
+        texts.append(entry[0])
+    }
+    if (allBlank(texts)) {
+        for (text in texts) {
+            rows.append("")
+        }
+        return
+    }
+    var values = []
+    var escaped = []
+    var offset = commonIndent(texts)
+    var index = 0
+    while (index < segment.length()) {
+        var text = texts[index].substring(indentOf(texts[index], offset), texts[index].length())
+        if (segment[index][1] == false) {
+            text = replaceInline(text, values, file, first + index)
+        }
+        escaped.append(escape(text))
+        index = index + 1
+    }
+    segmentRows(escaped, values, rows)
+}
+
+// `{@html markdown.render("` before the first line, `")}` after the last.
+method segmentRows(array<string> escaped, array<string> values, array<string> rows) {
+    var open = "{@html " + RENDER_CALL + QUOTE
+    var close = QUOTE + ")}"
+    if (values.length() > 0) {
+        open = "{@html " + FILL_CALL + RENDER_CALL + QUOTE
+        close = QUOTE + "), [" + values.join(", ") + "])}"
+    }
+    var last = escaped.length() - 1
+    var index = 0
+    while (index <= last) {
+        var row = escaped[index]
+        if (index == 0) {
+            row = open + row
+        }
+        if (index == last) {
+            row = row + close
+        }
+        rows.append(row)
+        index = index + 1
+    }
+}
+
+method allBlank(array<string> texts): bool {
+    for (text in texts) {
+        if (isBlank(text) == false) {
+            return false
+        }
+    }
+    return true
+}
+
+// The number of leading blanks every non-blank line has.
+method commonIndent(array<string> texts): integer {
+    var common = 0 - 1
+    for (text in texts) {
+        if (isBlank(text)) {
+            continue
+        }
+        var indent = indentOf(text, text.length())
+        if (common < 0 || indent < common) {
+            common = indent
+        }
+    }
+    return common
+}
+
+// How many of the first `limit` characters are blanks.
+method indentOf(string text, integer limit): integer {
+    var count = 0
+    while (count < limit && count < text.length() && (text.charAt(count) == " " || text.charAt(count) == chr(9))) {
+        count = count + 1
+    }
+    return count
+}
+
+// Swaps every {expr} of a line for a marker and collects the expressions in `values`. Inline code is
+// literal and so is a backslashed brace.
+method replaceInline(string text, array<string> values, string file, integer line): string {
+    var out = ""
+    var i = 0
+    while (i < text.length()) {
+        var c = text.charAt(i)
+        if (c == "`") {
+            var span = codeSpanEnd(text, i)
+            out = out + text.substring(i, span)
+            i = span
+            continue
+        }
+        if (c == BACKSLASH && i + 1 < text.length() && (text.charAt(i + 1) == "{" || text.charAt(i + 1) == "}")) {
+            out = out + text.charAt(i + 1)
+            i = i + 2
+            continue
+        }
+        if (c != "{") {
+            out = out + c
+            i = i + 1
+            continue
+        }
+        if (isHeadingId(text, i)) {
+            out = out + text.substring(i, text.length())
+            i = text.length()
+            continue
+        }
+        var close = closeBrace(text, i)
+        var expression = ""
+        if (close < 0) {
+            fail(file, line, "unclosed '{' (write \\{ for a literal brace)")
+        }
+        expression = text.substring(i + 1, close - 1).trim()
+        if (expression == "") {
+            fail(file, line, "empty {} (write \\{ for a literal brace)")
+        }
+        out = out + MARKER_OPEN + values.length() + MARKER_CLOSE
+        values.append(expression)
+        i = close
+    }
+    return out
+}
+
+// The index after the code span that starts at `at`, or after its opening backticks when nothing
+// closes it on the line.
+method codeSpanEnd(string text, integer at): integer {
+    var run = 0
+    while (at + run < text.length() && text.charAt(at + run) == "`") {
+        run = run + 1
+    }
+    var close = text.indexOf(text.substring(at, at + run), at + run)
+    if (close < 0) {
+        return at + run
+    }
+    return close + run
+}
+
+// `{#id}` closing a heading line (`## Title {#id}`): the renderer's, not an expression.
+method isHeadingId(string text, integer at): bool {
+    if (text.trim().startsWith("#") == false || at + 2 >= text.length() || text.charAt(at + 1) != "#") {
+        return false
+    }
+    var close = text.indexOf("}", at)
+    if (close < 0 || isBlank(text.substring(close + 1, text.length())) == false) {
+        return false
+    }
+    var id = text.substring(at + 2, close)
+    for (character in id) {
+        if (character != "-" && character != "_" && (character < "0" || (character > "9" && character < "A") || (character > "Z" && character < "a") || character > "z")) {
+            return false
+        }
+    }
+    return id != ""
+}

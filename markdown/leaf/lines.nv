@@ -1,0 +1,154 @@
+package leaf
+
+// What one line of Markdown looks like, without looking at its neighbours.
+
+final MAX_BLOCK_INDENT = 3
+final CODE_INDENT = 4
+
+method indentOf(string line): integer {
+    var count = 0
+    while (count < line.length() && line.charAt(count) == " ") {
+        count = count + 1
+    }
+    return count
+}
+
+method isBlankLine(string line): bool {
+    return line.trim() == ""
+}
+
+// The line without up to `width` leading spaces.
+method dedent(string line, integer width): string {
+    return line.substring(smaller(indentOf(line), width), line.length())
+}
+
+method smaller(integer left, integer right): integer {
+    if (left < right) {
+        return left
+    }
+    return right
+}
+
+method isThematicBreak(string line): bool {
+    if (indentOf(line) > MAX_BLOCK_INDENT) {
+        return false
+    }
+    var body = line.trim()
+    if (body.length() < 3) {
+        return false
+    }
+    var mark = body.charAt(0)
+    if (mark != "-" && mark != "*" && mark != "_") {
+        return false
+    }
+    var count = 0
+    for (character in body) {
+        if (character == mark) {
+            count = count + 1
+            continue
+        }
+        if (character != " ") {
+            return false
+        }
+    }
+    return count >= 3
+}
+
+// 1 for a `===` line, 2 for a `---` line (the underline of a setext heading), else 0.
+method setextLevel(string line): integer {
+    if (indentOf(line) > MAX_BLOCK_INDENT) {
+        return 0
+    }
+    var body = line.trim()
+    if (body == "") {
+        return 0
+    }
+    if (isRunOf(body, "=")) {
+        return 1
+    }
+    if (isRunOf(body, "-")) {
+        return 2
+    }
+    return 0
+}
+
+method isRunOf(string body, string mark): bool {
+    for (character in body) {
+        if (character != mark) {
+            return false
+        }
+    }
+    return true
+}
+
+method isQuoteLine(string line): bool {
+    return indentOf(line) <= MAX_BLOCK_INDENT && line.trim().startsWith(">")
+}
+
+// `:::kind` or `:::kind Title`: the kind, "" when the line opens no container.
+final CONTAINER_KINDS = {"note": true, "tip": true, "warning": true, "danger": true}
+
+method containerKind(string line): string {
+    var body = line.trim()
+    if (indentOf(line) > MAX_BLOCK_INDENT || body.startsWith(":::") == false) {
+        return ""
+    }
+    var words = body.substring(3, body.length()).trim().split(" ")
+    if (words.length() == 0 || CONTAINER_KINDS.has(words[0].toLower()) == false) {
+        return ""
+    }
+    return words[0].toLower()
+}
+
+method containerTitle(string line): string {
+    var rest = line.trim().substring(3, line.trim().length()).trim()
+    var space = rest.indexOf(" ")
+    if (space < 0) {
+        return ""
+    }
+    return rest.substring(space + 1, rest.length()).trim()
+}
+
+method isContainerEnd(string line): bool {
+    return line.trim() == ":::"
+}
+
+// `# Title`: [level, text] with the closing hashes removed, [] for any other line.
+method atxHeading(string line): array<string> {
+    if (indentOf(line) > MAX_BLOCK_INDENT) {
+        return []
+    }
+    var body = line.trim()
+    var level = 0
+    while (level < body.length() && body.charAt(level) == "#") {
+        level = level + 1
+    }
+    if (level == 0 || level > 6) {
+        return []
+    }
+    if (level < body.length() && body.charAt(level) != " ") {
+        return []
+    }
+    return [("" + level), stripClosingHashes(body.substring(level, body.length()).trim())]
+}
+
+method stripClosingHashes(string title): string {
+    var end = title.length()
+    while (end > 0 && title.charAt(end - 1) == "#") {
+        end = end - 1
+    }
+    if (end == title.length()) {
+        return title
+    }
+    if (end == 0) {
+        return ""
+    }
+    if (title.charAt(end - 1) != " ") {
+        return title
+    }
+    return title.substring(0, end).trim()
+}
+
+method stripLeading(string line): string {
+    return line.substring(indentOf(line), line.length())
+}

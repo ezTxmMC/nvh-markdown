@@ -1,0 +1,28 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+method show(string source) {
+    println "> " + source.replace("\n", "\\n")
+    println markdown.render(source)
+}
+
+method main {
+    show("# H1\n## H2 ##\n###### H6\n####### seven\n#nospace\nSetext\n======\nSub\n---")
+    show("para one\nstill one\n\npara two")
+    show("- a\n- b\n\n- c\n\ntext\n\n* x\n* y")
+    show("1. one\n2. two\n   - nested\n   - more\n3. three\n\n3) other\n4) list")
+    show("- [x] done\n- [ ] todo\n- plain")
+    show("- item\n  continued lazily\ncontinued\n- next")
+    show("> quote\n> more\nlazy\n\n> > nested\n> back")
+    show("```nv\nvar x = {1}\n```\n\n~~~\nplain *text*\n~~~\n\n```\nunclosed fence")
+    show("    indented code\n    more\n\nafter")
+    show("---\n***\n___\n- - -")
+    show("| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n| x \\| y | `|` |\n\n| bad | table |\n| no | delimiter |")
+    show(":::note\nbody **bold**\n:::\n\n:::warning Careful\n- list\n:::danger\nnested\n:::\n:::")
+    show("<div class=\"x\">\n  *raw*\n</div>\n\n<!-- comment\nspans -->\n\nafter <script>x</script>\n\n<script>\nnot raw\n</script>")
+    show("")
+    show("\n\n   \n")
+    show("a\r\nb\r\n\r\n- c\r\n")
+    show("- a\n\n  para in item\n- b")
+}

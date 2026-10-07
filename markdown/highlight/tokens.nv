@@ -1,0 +1,45 @@
+package highlight
+
+import markdown/escape
+
+// The pieces of highlighted code: a class ("" for plain text) and the text. Neighbours of the
+// same class are joined, so a run of operators is one <span>.
+define class TokenBuffer {
+    array<string> classes
+    array<string> texts
+
+    construct() {
+        this.classes = []
+        this.texts = []
+    }
+
+    method add(string className, string text) {
+        if (text == "") {
+            return
+        }
+        var last = this.texts.length() - 1
+        if (last >= 0 && this.classes[last] == className) {
+            this.texts[last] = this.texts[last] + text
+            return
+        }
+        this.classes.append(className)
+        this.texts.append(text)
+    }
+
+    method html(): string {
+        var parts = []
+        var index = 0
+        while (index < this.texts.length()) {
+            parts.append(spanHtml(this.classes[index], this.texts[index]))
+            index = index + 1
+        }
+        return parts.join("")
+    }
+}
+
+method spanHtml(string className, string text): string {
+    if (className == "") {
+        return htmlEscape(text)
+    }
+    return "<span class=\"" + className + "\">" + htmlEscape(text) + "</span>"
+}

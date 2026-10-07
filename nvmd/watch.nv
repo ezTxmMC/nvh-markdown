@@ -1,0 +1,38 @@
+package nvmd
+
+import os
+
+// Rebuilds a .nvh when its .nvmd changes; Ctrl+C ends it.
+
+final POLL_MILLISECONDS = 400
+
+// The modification time of every source, as one text.
+method fingerprint(array<string> paths): string {
+    var parts = []
+    for (source in findSources(paths)) {
+        parts.append(source + "=" + os.modifiedMillis(source))
+    }
+    return parts.join(NEWLINE)
+}
+
+method watch(array<string> paths) {
+    os.catchInterrupt()
+    var seen = ""
+    while (os.interrupted() == false) {
+        seen = rebuildIfChanged(paths, seen)
+        os.sleep(POLL_MILLISECONDS)
+    }
+}
+
+// The new fingerprint; the sources are translated when it differs from `seen`.
+method rebuildIfChanged(array<string> paths, string seen): string {
+    var now = fingerprint(paths)
+    if (now == seen) {
+        return seen
+    }
+    var report = build(paths, false)
+    for (file in report.written) {
+        println "nvmd: wrote " + file
+    }
+    return now
+}

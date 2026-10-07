@@ -1,0 +1,147 @@
+> # H1\n## H2 ##\n###### H6\n####### seven\n#nospace\nSetext\n======\nSub\n---
+<h1 id="h1"><a class="heading-anchor" href="#h1">H1</a></h1>
+<h2 id="h2"><a class="heading-anchor" href="#h2">H2</a></h2>
+<h6 id="h6"><a class="heading-anchor" href="#h6">H6</a></h6>
+<h1 id="seven-nospace-setext"><a class="heading-anchor" href="#seven-nospace-setext">####### seven
+#nospace
+Setext</a></h1>
+<h2 id="sub"><a class="heading-anchor" href="#sub">Sub</a></h2>
+
+> para one\nstill one\n\npara two
+<p>para one
+still one</p>
+<p>para two</p>
+
+> - a\n- b\n\n- c\n\ntext\n\n* x\n* y
+<ul>
+<li><p>a</p>
+</li>
+<li><p>b</p>
+</li>
+<li><p>c</p>
+</li>
+</ul>
+<p>text</p>
+<ul>
+<li>x</li>
+<li>y</li>
+</ul>
+
+> 1. one\n2. two\n   - nested\n   - more\n3. three\n\n3) other\n4) list
+<ol>
+<li>one</li>
+<li>two
+<ul>
+<li>nested</li>
+<li>more</li>
+</ul></li>
+<li>three</li>
+</ol>
+<ol start="3">
+<li>other</li>
+<li>list</li>
+</ol>
+
+> - [x] done\n- [ ] todo\n- plain
+<ul>
+<li class="task-list-item"><input type="checkbox" disabled checked /> done</li>
+<li class="task-list-item"><input type="checkbox" disabled /> todo</li>
+<li>plain</li>
+</ul>
+
+> - item\n  continued lazily\ncontinued\n- next
+<ul>
+<li>item
+continued lazily
+continued</li>
+<li>next</li>
+</ul>
+
+> > quote\n> more\nlazy\n\n> > nested\n> back
+<blockquote>
+<p>quote
+more
+lazy</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>nested
+back</p>
+</blockquote>
+</blockquote>
+
+> ```nv\nvar x = {1}\n```\n\n~~~\nplain *text*\n~~~\n\n```\nunclosed fence
+<pre class="code-block" data-language="nv"><code class="language-nv"><span class="tok-kw">var</span> x <span class="tok-op">=</span> <span class="tok-punct">{</span><span class="tok-num">1</span><span class="tok-punct">}</span></code></pre>
+<pre class="code-block"><code>plain *text*</code></pre>
+<pre class="code-block"><code>unclosed fence</code></pre>
+
+>     indented code\n    more\n\nafter
+<pre class="code-block"><code>indented code
+more</code></pre>
+<p>after</p>
+
+> ---\n***\n___\n- - -
+<hr />
+<hr />
+<hr />
+<hr />
+
+> | a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n| x \| y | `|` |\n\n| bad | table |\n| no | delimiter |
+<div class="table-wrapper"><table>
+<thead>
+<tr><th style="text-align:left">a</th><th style="text-align:center">b</th><th style="text-align:right">c</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align:left">1</td><td style="text-align:center">2</td><td style="text-align:right">3</td></tr>
+<tr><td style="text-align:left">x | y</td><td style="text-align:center">`</td><td style="text-align:right">`</td></tr>
+</tbody>
+</table></div>
+<p>| bad | table |
+| no | delimiter |</p>
+
+> :::note\nbody **bold**\n:::\n\n:::warning Careful\n- list\n:::danger\nnested\n:::\n:::
+<aside class="callout callout-note" role="note">
+<p class="callout-title">Note</p>
+<p>body <strong>bold</strong></p>
+</aside>
+<aside class="callout callout-warning" role="note">
+<p class="callout-title">Careful</p>
+<ul>
+<li>list</li>
+</ul>
+<aside class="callout callout-danger" role="note">
+<p class="callout-title">Danger</p>
+<p>nested</p>
+</aside>
+</aside>
+
+> <div class="x">\n  *raw*\n</div>\n\n<!-- comment\nspans -->\n\nafter <script>x</script>\n\n<script>\nnot raw\n</script>
+<div class="x">
+  *raw*
+</div>
+<!-- comment
+spans -->
+<p>after &lt;script&gt;x&lt;/script&gt;</p>
+<p>&lt;script&gt;
+not raw
+&lt;/script&gt;</p>
+
+> 
+
+> \n\n   \n
+
+> a\nb\n\n- c\n
+<p>a
+b</p>
+<ul>
+<li>c</li>
+</ul>
+
+> - a\n\n  para in item\n- b
+<ul>
+<li><p>a</p>
+<p>para in item</p>
+</li>
+<li><p>b</p>
+</li>
+</ul>

@@ -1,0 +1,91 @@
+package leaf
+
+import markdown/escape
+import markdown/highlight
+
+// Fenced and indented code blocks.
+
+define class Fence {
+    string mark
+    integer length
+    string info
+    integer indent
+
+    construct(string mark, integer length, string info, integer indent) {
+        this.mark = mark
+        this.length = length
+        this.info = info
+        this.indent = indent
+    }
+}
+
+// The opening fence of a line, nothing when it is none.
+method fenceOf(string line): Fence {
+    var indent = indentOf(line)
+    if (indent > MAX_BLOCK_INDENT || indent >= line.length()) {
+        return
+    }
+    var mark = line.charAt(indent)
+    if (mark != "`" && mark != "~") {
+        return
+    }
+    var end = indent
+    while (end < line.length() && line.charAt(end) == mark) {
+        end = end + 1
+    }
+    var info = line.substring(end, line.length()).trim()
+    if (end - indent < 3 || (mark == "`" && info.contains("`"))) {
+        return
+    }
+    return Fence(mark, end - indent, info, indent)
+}
+
+method closesFence(string line, Fence fence): bool {
+    if (indentOf(line) > MAX_BLOCK_INDENT) {
+        return false
+    }
+    var body = line.trim()
+    return body.length() >= fence.length && isRunOf(body, fence.mark)
+}
+
+method matchFence(array<string> lines, integer start): BlockMatch {
+    var fence = fenceOf(lines[start])
+    if (isNothing(fence)) {
+        return
+    }
+    var code = []
+    var index = start + 1
+    while (index < lines.length() && closesFence(lines[index], fence) == false) {
+        code.append(dedent(lines[index], fence.indent))
+        index = index + 1
+    }
+    return BlockMatch(codeBlockHtml(fence.info.split(" ")[0], code.join("\n")), index + 1)
+}
+
+method codeBlockHtml(string language, string code): string {
+    var lang = language.toLower()
+    var attribute = ""
+    var className = ""
+    if (lang != "") {
+        attribute = " data-language=\"" + htmlEscape(lang) + "\""
+        className = " class=\"language-" + htmlEscape(lang) + "\""
+    }
+    return "<pre class=\"code-block\"" + attribute + "><code" + className + ">" + highlightCode(lang, code) + "</code></pre>\n"
+}
+
+method matchIndentedCode(array<string> lines, integer start): BlockMatch {
+    if (indentOf(lines[start]) < CODE_INDENT || isBlankLine(lines[start])) {
+        return
+    }
+    var code = []
+    var index = start
+    while (index < lines.length() && (indentOf(lines[index]) >= CODE_INDENT || isBlankLine(lines[index]))) {
+        code.append(dedent(lines[index], CODE_INDENT))
+        index = index + 1
+    }
+    while (code.length() > 0 && code[code.length() - 1].trim() == "") {
+        code.pop()
+        index = index - 1
+    }
+    return BlockMatch(codeBlockHtml("", code.join("\n")), index)
+}

@@ -1,0 +1,25 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+method show(string source) {
+    println "> " + source.replace("\n", "\\n")
+    println markdown.render(source)
+}
+
+method main {
+    show("*one* **two** ***three*** _four_ __five__ ~~six~~")
+    show("a*b*c and a_b_c and **bold*mixed*bold**")
+    show("*unclosed and **also and ~~tilde")
+    show("snake_case_word and 2 * 3 * 4")
+    show("`code` and ``co`de`` and ` spaced ` and `unclosed")
+    show("[link](http://a.b/c?d=1&e=2 \"The *title*\") and [empty]() and ![alt *x*](img.png)")
+    show("[ref][r] and [r] and [r][] and [missing]\n\n[r]: http://ref.example 'Ref'")
+    show("<https://auto.link> and <me@mail.example> and https://bare.example/path. And (https://paren.example/a).")
+    show("a & b &amp; c &#35; &bogus d &copy;")
+    show("1 < 2 > 1 <script>alert(1)</script> <b class=\"x\">bold</b> <!-- note --> <Unknown/>")
+    show("line one  \nline two\\\nline three\nline four")
+    show("escaped \\* \\_ \\` \\[ \\\\ \\a")
+    show("[javascript](javascript:alert(1)) [ok](/rel)")
+    show("quote \" and 'single' and unicode äöü € 日本語")
+}

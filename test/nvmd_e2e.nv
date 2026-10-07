@@ -1,0 +1,14 @@
+package main
+
+import os
+import "github.com/ezTxmMC/nvh-markdown/nvmd"
+
+// Generates e2e/Page.nvmd, compiles the project in e2e/ with the real markdown package and prints the page.
+
+method main {
+    nvmd.build(["e2e"], false)
+    var result = os.run(os.env("NOVUSC") + " run e2e/main.nv")
+    println "exit " + result["code"]
+    println result["output"]
+    nvmd.clean(["e2e"])
+}

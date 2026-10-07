@@ -1,0 +1,60 @@
+package leaf
+
+final BLOCK_TAGS = {"address": true, "article": true, "aside": true, "blockquote": true, "button": true, "details": true, "div": true,
+    "dl": true, "fieldset": true, "figcaption": true, "figure": true, "footer": true, "form": true, "h1": true, "h2": true,
+    "h3": true, "h4": true, "h5": true, "h6": true, "header": true, "hr": true, "main": true, "nav": true,
+    "ol": true, "p": true, "pre": true, "section": true, "summary": true, "table": true, "ul": true, "dd": true, "dt": true,
+    "li": true, "tbody": true, "td": true, "tfoot": true, "th": true, "thead": true, "tr": true, "input": true, "label": true, "img": true}
+
+// Tags that cannot be written as raw HTML at all: their content would run.
+final FORBIDDEN_TAGS = {"script": true, "style": true, "iframe": true}
+
+// The lowercase name of the tag a line starts with, "" when it starts with none.
+method blockTagName(string line): string {
+    var body = line.trim()
+    if (indentOf(line) > MAX_BLOCK_INDENT || body.startsWith("<") == false) {
+        return ""
+    }
+    var nameStart = 1
+    if (body.startsWith("</")) {
+        nameStart = 2
+    }
+    var end = nameStart
+    while (end < body.length() && (isTagCharacter(body.charAt(end)))) {
+        end = end + 1
+    }
+    return body.substring(nameStart, end).toLower()
+}
+
+method isTagCharacter(string character): bool {
+    return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z") || (character >= "0" && character <= "9") || character == "-"
+}
+
+method startsHtmlBlock(string line): bool {
+    if (indentOf(line) <= MAX_BLOCK_INDENT && line.trim().startsWith("<!--")) {
+        return true
+    }
+    var name = blockTagName(line)
+    return name != "" && BLOCK_TAGS.has(name) && FORBIDDEN_TAGS.has(name) == false
+}
+
+// Raw HTML up to the next blank line (an HTML comment: up to the line that closes it).
+method matchHtmlBlock(array<string> lines, integer start): BlockMatch {
+    if (startsHtmlBlock(lines[start]) == false) {
+        return
+    }
+    var isComment = lines[start].trim().startsWith("<!--")
+    var raw = []
+    var index = start
+    while (index < lines.length()) {
+        if (isComment == false && isBlankLine(lines[index])) {
+            break
+        }
+        raw.append(lines[index])
+        index = index + 1
+        if (isComment && lines[index - 1].contains("-->")) {
+            break
+        }
+    }
+    return BlockMatch(raw.join("\n") + "\n", index)
+}

@@ -1,0 +1,6 @@
+// Markdown and .nvmd (Markdown + Novus) for nvh: imported by others as "github.com/ezTxmMC/nvh-markdown"
+project "github.com/ezTxmMC/nvh-markdown"
+version "0.1.0"
+main "nvmd.nv"
+lib "lib.nv"
+output "nvmd"

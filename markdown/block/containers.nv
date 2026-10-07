@@ -1,0 +1,53 @@
+package block
+
+import markdown/escape
+import markdown/leaf
+
+final CONTAINER_FENCE = ":::"
+
+// `:::note Title` ... `:::`: a callout whose body is Markdown again.
+method matchContainer(array<string> lines, integer start, Context context): BlockMatch {
+    var kind = containerKind(lines[start])
+    if (kind == "") {
+        return
+    }
+    var end = containerEnd(lines, start)
+    var inner = []
+    var index = start + 1
+    while (index < end) {
+        inner.append(lines[index])
+        index = index + 1
+    }
+    return BlockMatch(calloutHtml(kind, containerTitle(lines[start]), renderBlocks(inner, context, false)), end + 1)
+}
+
+// The line of the closing `:::`, or the end of the input; nested containers are skipped.
+method containerEnd(array<string> lines, integer start): integer {
+    var depth = 1
+    var index = start + 1
+    while (index < lines.length()) {
+        if (containerKind(lines[index]) != "") {
+            depth = depth + 1
+        }
+        if (isContainerEnd(lines[index])) {
+            depth = depth - 1
+        }
+        if (depth == 0) {
+            return index
+        }
+        index = index + 1
+    }
+    return lines.length()
+}
+
+method calloutHtml(string kind, string title, string body): string {
+    var heading = title
+    if (heading == "") {
+        heading = kind.substring(0, 1).toUpper() + kind.substring(1, kind.length())
+    }
+    var parts = []..append("<aside class=\"callout callout-" + kind + "\" role=\"note\">\n")
+        ..append("<p class=\"callout-title\">" + htmlEscape(heading) + "</p>\n")
+        ..append(body)
+        ..append("</aside>\n")
+    return parts.join("")
+}

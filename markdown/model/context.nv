@@ -1,0 +1,69 @@
+package model
+
+import markdown/escape
+
+// A heading of a document: for tables of contents and anchors.
+define class Heading {
+    integer level
+    string id
+    string text
+
+    construct(integer level, string id, string text) {
+        this.level = level
+        this.id = id
+        this.text = text
+    }
+}
+
+// What one render pass shares between its blocks: link reference definitions, the ids handed out
+// to headings and the headings themselves.
+define class Context {
+    map<string, array<string>> references
+    map<string, integer> usedIds
+    array<Heading> headings
+
+    construct() {
+        this.references = {}
+        this.usedIds = {}
+        this.headings = []
+    }
+
+    method define(string label, string url, string title) {
+        var key = referenceKey(label)
+        if (this.references.has(key)) {
+            return
+        }
+        this.references[key] = [url, title]
+    }
+
+    // [url, title] of a defined reference, [] when there is none.
+    method find(string label): array<string> {
+        var key = referenceKey(label)
+        if (this.references.has(key) == false) {
+            return []
+        }
+        return this.references[key]
+    }
+
+    method uniqueId(string base): string {
+        var id = base
+        if (id == "") {
+            id = SLUG_FALLBACK
+        }
+        if (this.usedIds.has(id) == false) {
+            this.usedIds[id] = 0
+            return id
+        }
+        var count = this.usedIds[id] + 1
+        this.usedIds[id] = count
+        return this.uniqueId(id + "-" + ("" + count))
+    }
+
+    method addHeading(integer level, string id, string text) {
+        this.headings.append(Heading(level, id, text))
+    }
+}
+
+method referenceKey(string label): string {
+    return collapseWhitespace(label.trim().toLower())
+}

@@ -1,0 +1,90 @@
+package escape
+
+import strings
+
+final MARKER_OPEN = chr(1)
+final MARKER_CLOSE = chr(2)
+final SLUG_FALLBACK = "section"
+
+// The text of rendered HTML: tags removed, entities decoded.
+method stripTags(string html): string {
+    var parts = []
+    var inTag = false
+    var start = 0
+    var index = 0
+    while (index < html.length()) {
+        var character = html.charAt(index)
+        if (character == "<" && inTag == false) {
+            parts.append(html.substring(start, index))
+            inTag = true
+        }
+        if (character == ">" && inTag) {
+            inTag = false
+            start = index + 1
+        }
+        index = index + 1
+    }
+    if (inTag == false) {
+        parts.append(html.substring(start, html.length()))
+    }
+    return htmlUnescape(parts.join(""))
+}
+
+// Removes every `{expr}` marker (MARKER_OPEN, digits, MARKER_CLOSE): the value is only known
+// when the page renders, so it cannot take part in ids or outlines.
+method stripMarkers(string source): string {
+    if (source.contains(MARKER_OPEN) == false) {
+        return source
+    }
+    var parts = []
+    var index = 0
+    while (index < source.length()) {
+        var character = source.charAt(index)
+        if (character != MARKER_OPEN) {
+            parts.append(character)
+            index = index + 1
+            continue
+        }
+        var close = source.indexOf(MARKER_CLOSE, index)
+        if (close < 0) {
+            return parts.join("")
+        }
+        index = close + 1
+    }
+    return parts.join("")
+}
+
+// Typographic punctuation outside ASCII: it separates words like a space does.
+final TYPOGRAPHIC_PUNCTUATION = ["—", "–", "…", "“", "”", "‘", "’", "«", "»", "·"]
+
+// Lower case, words joined by `-`; letters, digits, `_` and non-ASCII bytes survive.
+method slugify(string title): string {
+    var parts = []
+    var pendingDash = false
+    var plain = stripMarkers(title).toLower()
+    for (mark in TYPOGRAPHIC_PUNCTUATION) {
+        plain = plain.replace(mark, " ")
+    }
+    for (character in plain.trim()) {
+        if (isWordCharacter(character) || character == "_" || character > "~") {
+            if (pendingDash && parts.length() > 0) {
+                parts.append("-")
+            }
+            pendingDash = false
+            parts.append(character)
+            continue
+        }
+        if (isBlankCharacter(character) || character == "-") {
+            pendingDash = true
+        }
+    }
+    return parts.join("")
+}
+
+method collapseWhitespace(string source): string {
+    var words = []
+    for (word in strings.words(source)) {
+        words.append(word)
+    }
+    return words.join(" ")
+}

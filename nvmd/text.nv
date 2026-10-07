@@ -1,0 +1,135 @@
+package nvmd
+
+import os
+
+// Names and small text helpers of the translator.
+
+final NEWLINE = chr(10)
+final CARRIAGE_RETURN = chr(13)
+final QUOTE = chr(34)
+final BACKSLASH = chr(92)
+final MARKER_OPEN = chr(1)
+final MARKER_CLOSE = chr(2)
+
+// The package that renders the Markdown segments; the generated .nvh imports it.
+final MARKDOWN_MODULE = "github.com/ezTxmMC/nvh-markdown/markdown"
+final MARKDOWN_IMPORT = "import " + QUOTE + MARKDOWN_MODULE + QUOTE
+
+// A generated file starts with `<?nv` and this comment: only such files are ever overwritten or removed.
+final GENERATED_MARKER = "/* nvmd-generated */"
+
+method isBlank(string text): bool {
+    var i = 0
+    while (i < text.length()) {
+        if (text.charAt(i) > " ") {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+method isName(string text): bool {
+    if (text.length() == 0 || isNameStart(text.charAt(0)) == false) {
+        return false
+    }
+    var i = 1
+    while (i < text.length()) {
+        if (isNameStart(text.charAt(i)) == false && (text.charAt(i) < "0" || text.charAt(i) > "9")) {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+method isNameStart(string c): bool {
+    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_"
+}
+
+// The lines of a source without their line ends (LF or CRLF).
+method sourceLines(string source): array<string> {
+    var lines = []
+    for (line in source.split(NEWLINE)) {
+        if (line.endsWith(CARRIAGE_RETURN)) {
+            line = line.substring(0, line.length() - 1)
+        }
+        lines.append(line)
+    }
+    return lines
+}
+
+// A translation error ends the program: a generator has nothing to continue with.
+method fail(string file, integer index, string message) {
+    eprintln "error: " + position(file, index) + ": " + message
+    os.exit(1)
+}
+
+method position(string file, integer index): string {
+    return file + ":" + (index + 1)
+}
+
+// A Novus string literal for a single-line value ("${" is split so it is not interpolated).
+method literal(string value): string {
+    return QUOTE + escape(value) + QUOTE
+}
+
+// The inside of a string literal; line breaks stay line breaks, so the rows keep their lines.
+method escape(string text): string {
+    var out = ""
+    var i = 0
+    while (i < text.length()) {
+        var c = text.charAt(i)
+        i = i + 1
+        if (c == BACKSLASH || c == QUOTE) {
+            out = out + BACKSLASH + c
+            continue
+        }
+        if (c == "$" && i < text.length() && text.charAt(i) == "{") {
+            out = out + "$" + QUOTE + " + " + QUOTE
+            continue
+        }
+        out = out + c
+    }
+    return out
+}
+
+// Index after the string literal that starts at `at`.
+method skipString(string s, integer at): integer {
+    var i = at + 1
+    while (i < s.length()) {
+        if (s.charAt(i) == BACKSLASH) {
+            i = i + 2
+            continue
+        }
+        if (s.charAt(i) == QUOTE) {
+            return i + 1
+        }
+        i = i + 1
+    }
+    return s.length()
+}
+
+// Index after the '}' closing the '{' at `open`, -1 when there is none.
+method closeBrace(string s, integer open): integer {
+    var depth = 0
+    var i = open
+    while (i < s.length()) {
+        var c = s.charAt(i)
+        if (c == QUOTE) {
+            i = skipString(s, i)
+            continue
+        }
+        if (c == "{") {
+            depth = depth + 1
+        }
+        if (c == "}") {
+            depth = depth - 1
+        }
+        if (c == "}" && depth == 0) {
+            return i + 1
+        }
+        i = i + 1
+    }
+    return 0 - 1
+}

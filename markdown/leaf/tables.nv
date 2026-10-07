@@ -1,0 +1,124 @@
+package leaf
+
+import markdown/escape
+import markdown/inline
+import markdown/model
+
+// GFM tables: a header row, a delimiter row (`|---|:-:|`) and body rows.
+
+method matchTable(array<string> lines, integer start, Context context): BlockMatch {
+    if (start + 1 >= lines.length() || lines[start].contains("|") == false) {
+        return
+    }
+    var alignments = alignmentsOf(lines[start + 1])
+    var header = splitRow(lines[start])
+    if (alignments.length() == 0 || alignments.length() != header.length()) {
+        return
+    }
+    var rows = []
+    var index = start + 2
+    while (index < lines.length() && isBlankLine(lines[index]) == false && interruptsParagraph(lines[index]) == false) {
+        rows.append(splitRow(lines[index]))
+        index = index + 1
+    }
+    return BlockMatch(tableHtml(header, alignments, rows, context), index)
+}
+
+// The alignment of each column ("", left, center, right); [] when the line is no delimiter row.
+method alignmentsOf(string line): array<string> {
+    var cells = splitRow(line)
+    var alignments = []
+    for (cell in cells) {
+        var alignment = cellAlignment(cell.trim())
+        if (isNothing(alignment)) {
+            return []
+        }
+        alignments.append(alignment)
+    }
+    return alignments
+}
+
+method cellAlignment(string cell): string {
+    var core = cell
+    var left = core.startsWith(":")
+    var right = core.endsWith(":") && core.length() > 1
+    if (left) {
+        core = core.substring(1, core.length())
+    }
+    if (right) {
+        core = core.substring(0, core.length() - 1)
+    }
+    if (core == "" || isRunOf(core, "-") == false) {
+        return
+    }
+    if (left && right) {
+        return "center"
+    }
+    if (left) {
+        return "left"
+    }
+    if (right) {
+        return "right"
+    }
+    return ""
+}
+
+// The cells of a row; `\|` is a pipe inside a cell, the outer pipes are optional.
+method splitRow(string line): array<string> {
+    var body = line.trim()
+    if (body.startsWith("|")) {
+        body = body.substring(1, body.length())
+    }
+    if (body.endsWith("|") && body.endsWith("\\|") == false) {
+        body = body.substring(0, body.length() - 1)
+    }
+    var cells = []
+    var current = []
+    var index = 0
+    while (index < body.length()) {
+        var character = body.charAt(index)
+        if (character == "\\" && index + 1 < body.length() && body.charAt(index + 1) == "|") {
+            current.append("|")
+            index = index + 2
+            continue
+        }
+        if (character == "|") {
+            cells.append(current.join("").trim())
+            current = []
+        }
+        if (character != "|") {
+            current.append(character)
+        }
+        index = index + 1
+    }
+    cells.append(current.join("").trim())
+    return cells
+}
+
+method tableHtml(array<string> header, array<string> alignments, array<array<string>> rows, Context context): string {
+    var parts = ["<div class=\"table-wrapper\"><table>\n<thead>\n", rowHtml("th", header, alignments, context), "</thead>\n<tbody>\n"]
+    for (row in rows) {
+        parts.append(rowHtml("td", row, alignments, context))
+    }
+    parts.append("</tbody>\n</table></div>\n")
+    return parts.join("")
+}
+
+method rowHtml(string tag, array<string> cells, array<string> alignments, Context context): string {
+    var parts = ["<tr>"]
+    var column = 0
+    while (column < alignments.length()) {
+        var cell = ""
+        if (column < cells.length()) {
+            cell = cells[column]
+        }
+        var style = ""
+        if (alignments[column] != "") {
+            style = " style=\"text-align:" + alignments[column] + "\""
+        }
+        parts.append("<" + tag + style + ">" + renderInline(cell, context) + "</" + tag + ">")
+        column = column + 1
+    }
+    parts.append("</tr>\n")
+    return parts.join("")
+}

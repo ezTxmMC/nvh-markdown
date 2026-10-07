@@ -1,0 +1,138 @@
+package inline
+
+import markdown/escape
+
+final SCHEME_MAX_LENGTH = 32
+
+// Tags that may appear in the text; everything else is shown as text.
+final INLINE_TAGS = {"a": true, "abbr": true, "b": true, "br": true, "button": true, "cite": true, "code": true, "del": true,
+    "details": true, "em": true, "i": true, "img": true, "input": true, "ins": true, "kbd": true, "label": true, "mark": true,
+    "q": true, "s": true, "samp": true, "small": true, "span": true, "strong": true, "sub": true, "summary": true, "sup": true,
+    "time": true, "u": true, "var": true, "wbr": true, "div": true, "p": true, "pre": true, "table": true, "tr": true,
+    "td": true, "th": true, "ul": true, "ol": true, "li": true, "section": true, "aside": true, "figure": true,
+    "figcaption": true, "blockquote": true, "hr": true, "h1": true, "h2": true, "h3": true, "h4": true, "h5": true,
+    "h6": true, "thead": true, "tbody": true, "nav": true, "header": true, "footer": true, "article": true, "main": true}
+
+// `<` starts an autolink, an HTML comment, an allowed tag, or is text.
+method matchAngle(string source, integer start): Match {
+    var autolink = matchAutolink(source, start)
+    if (isSomething(autolink)) {
+        return autolink
+    }
+    var comment = matchComment(source, start)
+    if (isSomething(comment)) {
+        return comment
+    }
+    var tag = matchTag(source, start)
+    if (isSomething(tag)) {
+        return tag
+    }
+    return Match("&lt;", start + 1)
+}
+
+method matchComment(string source, integer start): Match {
+    if (source.substring(start, start + 4) != "<!--") {
+        return
+    }
+    var close = source.indexOf("-->", start + 4)
+    if (close < 0) {
+        return
+    }
+    return Match(source.substring(start, close + 3), close + 3)
+}
+
+// <https://example.com> and <name@example.com>
+method matchAutolink(string source, integer start): Match {
+    var close = source.indexOf(">", start)
+    if (close < 0) {
+        return
+    }
+    var target = source.substring(start + 1, close)
+    if (target == "" || target.contains(" ") || target.contains("<") || target.contains("\n")) {
+        return
+    }
+    if (hasScheme(target)) {
+        return Match(linkHtml(target, target), close + 1)
+    }
+    if (isEmailAddress(target)) {
+        return Match(linkHtml("mailto:" + target, target), close + 1)
+    }
+    return
+}
+
+method hasScheme(string target): bool {
+    var colon = target.indexOf(":")
+    if (colon < 2 || colon > SCHEME_MAX_LENGTH) {
+        return false
+    }
+    for (character in target.substring(0, colon)) {
+        if (isWordCharacter(character) == false && character != "+" && character != "." && character != "-") {
+            return false
+        }
+    }
+    return true
+}
+
+method isEmailAddress(string target): bool {
+    var at = target.indexOf("@")
+    return at > 0 && at < target.length() - 3 && target.indexOf(".", at) > at + 1
+}
+
+// An allowed tag with its attributes, quotes respected, up to the closing `>`.
+method matchTag(string source, integer start): Match {
+    var nameStart = start + 1
+    if (nameStart < source.length() && source.charAt(nameStart) == "/") {
+        nameStart = nameStart + 1
+    }
+    var nameEnd = nameStart
+    while (nameEnd < source.length() && (isWordCharacter(source.charAt(nameEnd)) || source.charAt(nameEnd) == "-")) {
+        nameEnd = nameEnd + 1
+    }
+    var name = source.substring(nameStart, nameEnd).toLower()
+    if (INLINE_TAGS.has(name) == false) {
+        return
+    }
+    var close = tagEnd(source, nameEnd)
+    if (close < 0) {
+        return
+    }
+    return Match(source.substring(start, close + 1), close + 1)
+}
+
+method tagEnd(string source, integer from): integer {
+    var quote = ""
+    var index = from
+    while (index < source.length()) {
+        var character = source.charAt(index)
+        index = index + 1
+        if (quote != "") {
+            if (character == quote) {
+                quote = ""
+            }
+            continue
+        }
+        if (character == ">") {
+            return index - 1
+        }
+        if (character == "<") {
+            return -1
+        }
+        if (character == "\"" || character == "'") {
+            quote = character
+        }
+    }
+    return -1
+}
+
+method linkHtml(string target, string label): string {
+    return "<a href=\"" + htmlEscape(safeUrl(target)) + "\">" + htmlEscape(label) + "</a>"
+}
+
+// A link that would run script is turned into a dead link.
+method safeUrl(string url): string {
+    var lowered = url.trim().toLower()
+    if (lowered.startsWith("javascript:") || lowered.startsWith("vbscript:") || lowered.startsWith("data:text/html")) {
+        return "#"
+    }
+    return url
+}

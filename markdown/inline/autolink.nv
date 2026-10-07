@@ -1,0 +1,52 @@
+package inline
+
+import markdown/escape
+import strings
+
+final BARE_URL_TRAILING = ".,:;!?*_~'\""
+
+// A bare http:// or https:// address becomes a link (the GFM autolink).
+method matchBareUrl(string source, integer start): Match {
+    if (startsBareUrl(source, start) == false) {
+        return
+    }
+    var end = start
+    while (end < source.length() && isUrlCharacter(source.charAt(end))) {
+        end = end + 1
+    }
+    end = trimUrlEnd(source, start, end)
+    var url = source.substring(start, end)
+    if (url.length() < 9) {
+        return
+    }
+    return Match(linkHtml(url, url), end)
+}
+
+method startsBareUrl(string source, integer start): bool {
+    if (source.substring(start, start + 7) != "http://" && source.substring(start, start + 8) != "https://") {
+        return false
+    }
+    return start == 0 || isWordCharacter(source.charAt(start - 1)) == false
+}
+
+method isUrlCharacter(string character): bool {
+    return isBlankCharacter(character) == false && character != "<" && character != "`" && character != MARKER_OPEN
+}
+
+// Trailing punctuation and an unbalanced `)` belong to the sentence, not the address.
+method trimUrlEnd(string source, integer start, integer end): integer {
+    var last = end
+    while (last > start) {
+        var character = source.charAt(last - 1)
+        if (BARE_URL_TRAILING.contains(character)) {
+            last = last - 1
+            continue
+        }
+        if (character == ")" && strings.count(source.substring(start, last), "(") < strings.count(source.substring(start, last), ")")) {
+            last = last - 1
+            continue
+        }
+        return last
+    }
+    return last
+}

@@ -1,0 +1,8 @@
+
+<?nv
+import strings
+prop integer level = 1
+?>
+# Header only
+
+Level {level + 1}.

@@ -1,0 +1,9 @@
+# Handlers
+
+<button @click="hit">Clicked {clicks} times</button>
+<input bind="draft">
+
+A <b>plain</b> html line stays Markdown.
+
+<p class:big={clicks > 3}>text</p>
+<div>no handler here</div>

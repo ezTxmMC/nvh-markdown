@@ -1,0 +1,29 @@
+<span class="tok-com">// c</span>
+<span class="tok-kw">method</span> <span class="tok-kw">main</span> <span class="tok-punct">{</span>
+    <span class="tok-kw">var</span> s <span class="tok-op">=</span> <span class="tok-str">&quot;a\&quot;b&quot;</span> <span class="tok-op">+</span> <span class="tok-num">0x1f</span>
+    <span class="tok-kw">println</span> <span class="tok-type">Point</span><span class="tok-punct">{</span>x<span class="tok-op">=</span><span class="tok-num">1.5</span><span class="tok-punct">}.</span><span class="tok-fn">area</span><span class="tok-punct">()</span>
+<span class="tok-punct">}</span>
+<span class="tok-com">/* open comment</span>
+<span class="tok-kw">&lt;?nv</span>
+<span class="tok-kw">prop</span> <span class="tok-type">string</span> title <span class="tok-op">=</span> <span class="tok-str">&quot;x&quot;</span>
+<span class="tok-kw">?&gt;</span>
+<span class="tok-punct">&lt;</span><span class="tok-type">Layout</span> <span class="tok-fn">title</span><span class="tok-op">=</span><span class="tok-punct">{</span>title<span class="tok-punct">}</span> <span class="tok-fn">@click</span><span class="tok-op">=</span><span class="tok-str">&quot;go(1)&quot;</span><span class="tok-punct">&gt;</span>
+  <span class="tok-punct">{</span><span class="tok-op">#</span><span class="tok-kw">for</span> a <span class="tok-kw">in</span> xs<span class="tok-punct">}&lt;</span><span class="tok-kw">b</span> <span class="tok-fn">class</span><span class="tok-op">=</span><span class="tok-str">&quot;a&quot;</span><span class="tok-punct">&gt;{</span>a<span class="tok-punct">}&lt;/</span><span class="tok-kw">b</span><span class="tok-punct">&gt;{</span><span class="tok-op">/</span><span class="tok-kw">for</span><span class="tok-punct">}</span>
+<span class="tok-punct">&lt;/</span><span class="tok-type">Layout</span><span class="tok-punct">&gt;</span>
+<span class="tok-punct">&lt;</span><span class="tok-kw">p</span><span class="tok-punct">&gt;</span>a &lt; b<span class="tok-punct">&lt;/</span><span class="tok-kw">p</span><span class="tok-punct">&gt;&lt;</span><span class="tok-kw">br</span><span class="tok-punct">/&gt;&lt;</span><span class="tok-kw">img</span> <span class="tok-fn">src</span><span class="tok-op">=</span><span class="tok-fn">x</span><span class="tok-punct">&gt;</span>
+<span class="tok-com"># build</span>
+make <span class="tok-op">&amp;&amp;</span> <span class="tok-kw">echo</span> <span class="tok-str">&quot;done&quot;</span> <span class="tok-op">&gt;</span> out<span class="tok-punct">.</span>txt
+<span class="tok-punct">{</span><span class="tok-str">&quot;a&quot;</span><span class="tok-punct">:</span> <span class="tok-punct">[</span><span class="tok-num">1</span><span class="tok-punct">,</span> <span class="tok-num">2.5</span><span class="tok-punct">,</span> <span class="tok-kw">true</span><span class="tok-punct">,</span> <span class="tok-kw">null</span><span class="tok-punct">],</span> <span class="tok-str">&quot;b&quot;</span><span class="tok-punct">:</span> <span class="tok-str">&quot;x&quot;</span><span class="tok-punct">}</span>
+<span class="tok-kw">#define X 1</span>
+<span class="tok-kw">static</span> <span class="tok-type">int</span> <span class="tok-fn">f</span><span class="tok-punct">(</span><span class="tok-kw">const</span> <span class="tok-type">char</span> <span class="tok-op">*</span>s<span class="tok-punct">)</span> <span class="tok-punct">{</span> <span class="tok-kw">return</span> s<span class="tok-punct">[</span><span class="tok-num">0</span><span class="tok-punct">]</span> <span class="tok-op">==</span> <span class="tok-str">'a'</span><span class="tok-punct">;</span> <span class="tok-com">/* ok */</span> <span class="tok-punct">}</span>
+<span class="tok-kw">const</span> f <span class="tok-op">=</span> <span class="tok-kw">async</span> <span class="tok-punct">(</span>x<span class="tok-punct">)</span> <span class="tok-op">=&gt;</span> <span class="tok-str">`t ${x}
+more`</span><span class="tok-punct">;</span>
+<span class="tok-punct">[</span>server<span class="tok-punct">]</span>
+<span class="tok-type">port</span> <span class="tok-op">=</span> <span class="tok-num">8080</span> <span class="tok-com"># p</span>
+<span class="tok-type">name</span> <span class="tok-op">=</span> <span class="tok-str">&quot;n&quot;</span>
+<span class="tok-type">key</span><span class="tok-punct">:</span> value
+<span class="tok-type">list</span><span class="tok-punct">:</span>
+  <span class="tok-op">-</span> <span class="tok-kw">true</span>
+&lt;tag&gt; &amp; &quot;q&quot;
+
+<span class="tok-str">&quot;unterminated string</span>

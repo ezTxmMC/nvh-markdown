@@ -1,0 +1,116 @@
+package inline
+
+import markdown/escape
+import markdown/model
+
+// Links and images: [text](url "title"), [text][label], [label][] and [label].
+
+method matchLink(string source, integer start, Context context): Match {
+    var isImage = source.charAt(start) == "!"
+    var open = start
+    if (isImage) {
+        open = start + 1
+    }
+    var close = matchingBracket(source, open)
+    if (close < 0) {
+        return
+    }
+    var label = source.substring(open + 1, close)
+    var target = linkTarget(source, close + 1, label, context)
+    if (isNothing(target)) {
+        return
+    }
+    return Match(linkElement(isImage, label, target, context), target.end)
+}
+
+// A resolved destination: url, title and the index after the construct.
+define class LinkTarget {
+    string url
+    string title
+    integer end
+
+    construct(string url, string title, integer end) {
+        this.url = url
+        this.title = title
+        this.end = end
+    }
+}
+
+method linkElement(bool isImage, string label, LinkTarget target, Context context): string {
+    var title = ""
+    if (target.title != "") {
+        title = " title=\"" + htmlEscape(target.title) + "\""
+    }
+    var url = htmlEscape(safeUrl(target.url))
+    if (isImage) {
+        return "<img src=\"" + url + "\" alt=\"" + htmlEscape(stripTags(renderInline(label, context))) + "\"" + title + " />"
+    }
+    return "<a href=\"" + url + "\"" + title + ">" + renderInline(label, context) + "</a>"
+}
+
+// The `]` that closes the `[` at `open`, skipping nested brackets, escapes and code spans.
+method matchingBracket(string source, integer open): integer {
+    var depth = 0
+    var index = open
+    while (index < source.length()) {
+        var character = source.charAt(index)
+        if (character == "\\") {
+            index = index + 2
+            continue
+        }
+        if (character == "`") {
+            var span = matchCodeSpan(source, index)
+            if (isSomething(span)) {
+                index = span.end
+                continue
+            }
+            index = runOf(source, index, "`")
+            continue
+        }
+        if (character == "[") {
+            depth = depth + 1
+        }
+        if (character == "]") {
+            depth = depth - 1
+            if (depth == 0) {
+                return index
+            }
+        }
+        index = index + 1
+    }
+    return -1
+}
+
+method linkTarget(string source, integer after, string label, Context context): LinkTarget {
+    if (after < source.length() && source.charAt(after) == "(") {
+        return inlineTarget(source, after + 1)
+    }
+    if (after < source.length() && source.charAt(after) == "[") {
+        return referenceTarget(source, after, label, context)
+    }
+    return shortcutTarget(label, after, context)
+}
+
+method referenceTarget(string source, integer open, string label, Context context): LinkTarget {
+    var close = source.indexOf("]", open)
+    if (close < 0) {
+        return shortcutTarget(label, open, context)
+    }
+    var key = source.substring(open + 1, close)
+    if (key == "") {
+        key = label
+    }
+    var found = context.find(key)
+    if (found.length() == 0) {
+        return
+    }
+    return LinkTarget(found[0], found[1], close + 1)
+}
+
+method shortcutTarget(string label, integer after, Context context): LinkTarget {
+    var found = context.find(label)
+    if (found.length() == 0) {
+        return
+    }
+    return LinkTarget(found[0], found[1], after)
+}

@@ -1,0 +1,75 @@
+package markdown
+
+import markdown/block
+import markdown/escape
+import markdown/highlight
+import markdown/model
+
+// Markdown -> HTML.
+method render(string source): string {
+    return renderDocument(body(source), Context())
+}
+
+method highlight(string language, string code): string {
+    return highlightCode(language, code)
+}
+
+method slug(string title): string {
+    return slugify(title)
+}
+
+// The headings of a document in order, with the ids `render` gives them.
+method headings(string source): array<Heading> {
+    var context = Context()
+    renderDocument(body(source), context)
+    return context.headings
+}
+
+// The readable text of a document (for a search index).
+method text(string source): string {
+    return collapseWhitespace(stripTags(render(source)))
+}
+
+// Replaces the markers `.nvmd` leaves in rendered HTML by the escaped values: MARKER_OPEN, the
+// index of the value, MARKER_CLOSE.
+method fill(string html, array values): string {
+    if (html.contains(MARKER_OPEN) == false) {
+        return html
+    }
+    var parts = []
+    var index = 0
+    while (index < html.length()) {
+        var open = html.indexOf(MARKER_OPEN, index)
+        var close = html.indexOf(MARKER_CLOSE, open + 1)
+        if (open < 0 || close < 0) {
+            parts.append(html.substring(index, html.length()))
+            break
+        }
+        parts.append(html.substring(index, open))
+        parts.append(markerValue(html.substring(open + 1, close), values))
+        index = close + 1
+    }
+    return parts.join("")
+}
+
+method markerValue(string digits, array values): string {
+    if (digits == "") {
+        return ""
+    }
+    var position = parseInt(digits)
+    if (position < 0 || position >= values.length()) {
+        return ""
+    }
+    return htmlEscape(valueText(values[position]))
+}
+
+method valueText(object value): string {
+    var kind = typeOf(value)
+    if (kind == "string") {
+        return value
+    }
+    if (kind == "unknown") {
+        return ""
+    }
+    return "" + value
+}

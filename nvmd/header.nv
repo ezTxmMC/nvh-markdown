@@ -1,0 +1,155 @@
+package nvmd
+
+import strings
+
+// The start of a .nvmd file - frontmatter and `<?nv ?>` header - written as the one `<?nv ?>` header
+// of the .nvh file. No line is added or removed:
+//
+//     ---                      <?nv /* nvmd-generated */
+//     title: Control flow      prop string title = "Control flow"
+//     ---                      import "github.com/ezTxmMC/nvh-markdown/markdown" ?>
+//
+// With a header of its own the import goes in front of that header's `?>`, which then stands on a line
+// of its own (statements end at the line break); without frontmatter and header the first line gets
+// `<?nv /* nvmd-generated */ import "..." ?>` in front of it.
+
+final FRONTMATTER_FENCE = "---"
+final HEADER_OPENER = "<?nv"
+final HEADER_CLOSER = "?>"
+
+// The rows of the header and the index of the first body line.
+method readHeader(array<string> lines, string file): map<string, object> {
+    var next = 0
+    var frontEnd = 0 - 1
+    var rows = []
+    if (lines.length() > 0 && lines[0].trim() == FRONTMATTER_FENCE) {
+        frontEnd = frontmatterEnd(lines, file)
+        rows = frontmatterRows(lines, frontEnd, file)
+        next = frontEnd + 1
+    }
+    var headerAt = nextNonBlank(lines, next)
+    var hasHeader = headerAt < lines.length() && lines[headerAt].trim().startsWith(HEADER_OPENER)
+    if (hasHeader == false && frontEnd >= 0) {
+        rows[frontEnd] = MARKDOWN_IMPORT + " " + HEADER_CLOSER
+        return { "rows": rows, "next": next, "opened": true }
+    }
+    if (hasHeader == false) {
+        return { "rows": [], "next": 0, "opened": false }
+    }
+    var headerEnd = codeEnd(lines, headerAt, file)
+    while (next <= headerEnd) {
+        rows.append(headerRow(lines, next, headerAt, headerEnd, frontEnd >= 0, file))
+        next = next + 1
+    }
+    return { "rows": rows, "next": next, "opened": true }
+}
+
+// One line of the user's header: its opener is marked (or dropped when the frontmatter opened the block),
+// its closer gets the import.
+method headerRow(array<string> lines, integer index, integer headerAt, integer headerEnd, bool framed, string file): string {
+    var line = lines[index]
+    if (index == headerAt) {
+        line = openerRow(line, framed)
+    }
+    if (index != headerEnd) {
+        return line
+    }
+    return closerRow(line, index == headerAt, file, index)
+}
+
+method openerRow(string line, bool framed): string {
+    var at = line.indexOf(HEADER_OPENER)
+    var rest = line.substring(at + HEADER_OPENER.length(), line.length())
+    if (framed) {
+        return line.substring(0, at) + rest
+    }
+    return line.substring(0, at) + HEADER_OPENER + " " + GENERATED_MARKER + rest
+}
+
+method closerRow(string line, bool sameLineAsOpener, string file, integer index): string {
+    var at = strings.lastIndexOf(line, HEADER_CLOSER)
+    var before = line.substring(0, at)
+    if (sameLineAsOpener) {
+        before = before.substring(before.indexOf(HEADER_OPENER) + HEADER_OPENER.length(), before.length()).replace(GENERATED_MARKER, "")
+    }
+    if (isBlank(before) == false) {
+        fail(file, index, "write the `?>` that closes the header on a line of its own (the markdown import is added in front of it)")
+    }
+    return line.substring(0, at) + MARKDOWN_IMPORT + " " + line.substring(at, line.length())
+}
+
+method nextNonBlank(array<string> lines, integer from): integer {
+    var index = from
+    while (index < lines.length() && isBlank(lines[index])) {
+        index = index + 1
+    }
+    return index
+}
+
+method frontmatterEnd(array<string> lines, string file): integer {
+    var index = 1
+    while (index < lines.length()) {
+        if (lines[index].trim() == FRONTMATTER_FENCE) {
+            return index
+        }
+        index = index + 1
+    }
+    fail(file, 0, "unclosed frontmatter (missing ---)")
+    return 0
+}
+
+// `<?nv` + marker, one prop per `key: value` line, a blank row for the closing fence.
+method frontmatterRows(array<string> lines, integer end, string file): array<string> {
+    var rows = [HEADER_OPENER + " " + GENERATED_MARKER]
+    var index = 1
+    while (index < end) {
+        rows.append(propRow(lines[index], file, index))
+        index = index + 1
+    }
+    rows.append("")
+    return rows
+}
+
+method propRow(string line, string file, integer index): string {
+    if (isBlank(line) || line.trim().startsWith("#")) {
+        return ""
+    }
+    var colon = line.indexOf(":")
+    if (colon < 0) {
+        fail(file, index, "frontmatter line '" + line.trim() + "' is not 'key: value'")
+    }
+    var key = line.substring(0, colon).trim()
+    if (isName(key) == false) {
+        fail(file, index, "frontmatter key '" + key + "' is not a name (letters, digits and _)")
+    }
+    return "prop string " + key + " = " + literal(unquote(line.substring(colon + 1, line.length()).trim()))
+}
+
+// The value without one pair of surrounding quotes.
+method unquote(string value): string {
+    if (value.length() < 2) {
+        return value
+    }
+    var first = value.charAt(0)
+    if ((first == QUOTE || first == "'") && first == value.charAt(value.length() - 1)) {
+        return value.substring(1, value.length() - 1)
+    }
+    return value
+}
+
+// The line that holds the `?>` closing the `<?nv` that starts at line `from`.
+method codeEnd(array<string> lines, integer from, string file): integer {
+    var opener = lines[from].indexOf(HEADER_OPENER) + HEADER_OPENER.length()
+    if (lines[from].indexOf(HEADER_CLOSER, opener) >= 0) {
+        return from
+    }
+    var index = from + 1
+    while (index < lines.length()) {
+        if (lines[index].contains(HEADER_CLOSER)) {
+            return index
+        }
+        index = index + 1
+    }
+    fail(file, from, "unclosed <?nv (missing ?>)")
+    return from
+}

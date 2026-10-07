@@ -1,0 +1,213 @@
+package highlight
+
+import markdown/escape
+
+final PUNCTUATION = "{}()[];,.:"
+final OPERATORS = "+-*/%=<>!&|^~?@#$\\"
+
+// Source text -> tokens, for the languages that LanguageSpec describes.
+method scanCode(TokenBuffer buffer, LanguageSpec spec, string source) {
+    CodeScanner(buffer, spec, source).run()
+}
+
+define class CodeScanner {
+    TokenBuffer buffer
+    LanguageSpec spec
+    string source
+    integer position
+    bool lineStart
+
+    construct(TokenBuffer buffer, LanguageSpec spec, string source) {
+        this.buffer = buffer
+        this.spec = spec
+        this.source = source
+        this.position = 0
+        this.lineStart = true
+    }
+
+    method run() {
+        while (this.position < this.source.length()) {
+            this.step()
+        }
+    }
+
+    method step() {
+        var character = this.source.charAt(this.position)
+        if (isBlankCharacter(character)) {
+            this.takeBlank()
+            return
+        }
+        var end = this.tokenEnd(character)
+        var className = this.tokenClass(character, end)
+        this.lineStart = false
+        this.emit(className, end)
+    }
+
+    // The end of the token that starts here; classes and ends are decided together.
+    method tokenEnd(string character): integer {
+        if (this.startsComment()) {
+            return this.commentEnd()
+        }
+        if (this.spec.directive == character && this.lineStart) {
+            return this.lineEnd(this.position)
+        }
+        if (this.spec.quotes.contains(character) || this.spec.multilineQuotes.contains(character)) {
+            return this.stringEnd(character)
+        }
+        if (isDigitCharacter(character)) {
+            return this.wordEnd(this.position, true)
+        }
+        if (isWordStart(character)) {
+            return this.wordEnd(this.position, false)
+        }
+        return this.position + 1
+    }
+
+    method tokenClass(string character, integer end): string {
+        if (this.startsComment()) {
+            return "tok-com"
+        }
+        if (this.spec.directive == character && this.lineStart) {
+            return "tok-kw"
+        }
+        if (this.spec.quotes.contains(character) || this.spec.multilineQuotes.contains(character)) {
+            return "tok-str"
+        }
+        if (isDigitCharacter(character)) {
+            return "tok-num"
+        }
+        if (isWordStart(character)) {
+            return this.wordClass(this.source.substring(this.position, end), end)
+        }
+        return characterClass(character)
+    }
+
+    method emit(string className, integer end) {
+        this.buffer.add(className, this.source.substring(this.position, end))
+        this.position = end
+    }
+
+    method takeBlank() {
+        var end = this.position
+        while (end < this.source.length() && isBlankCharacter(this.source.charAt(end))) {
+            if (this.source.charAt(end) == "\n") {
+                this.lineStart = true
+            }
+            end = end + 1
+        }
+        this.emit("", end)
+    }
+
+    method startsComment(): bool {
+        if (this.spec.blockOpen != "" && this.startsWith(this.spec.blockOpen)) {
+            return true
+        }
+        for (marker in this.spec.lineComments) {
+            if (this.startsWith(marker)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    method startsWith(string marker): bool {
+        return this.source.substring(this.position, this.position + marker.length()) == marker
+    }
+
+    method commentEnd(): integer {
+        if (this.spec.blockOpen != "" && this.startsWith(this.spec.blockOpen)) {
+            var close = this.source.indexOf(this.spec.blockClose, this.position + this.spec.blockOpen.length())
+            if (close < 0) {
+                return this.source.length()
+            }
+            return close + this.spec.blockClose.length()
+        }
+        return this.lineEnd(this.position)
+    }
+
+    method lineEnd(integer from): integer {
+        var end = this.source.indexOf("\n", from)
+        if (end < 0) {
+            return this.source.length()
+        }
+        return end
+    }
+
+    // Up to the closing quote; a backslash escapes, and only a multiline quote may cross a line.
+    method stringEnd(string quote): integer {
+        var multiline = this.spec.multilineQuotes.contains(quote)
+        var index = this.position + 1
+        while (index < this.source.length()) {
+            var character = this.source.charAt(index)
+            if (character == "\\") {
+                index = index + 2
+                continue
+            }
+            if (character == quote) {
+                return index + 1
+            }
+            if (character == "\n" && multiline == false) {
+                return index
+            }
+            index = index + 1
+        }
+        return this.source.length()
+    }
+
+    method wordEnd(integer from, bool number): integer {
+        var end = from
+        while (end < this.source.length() && this.continuesWord(this.source.charAt(end), number)) {
+            end = end + 1
+        }
+        return end
+    }
+
+    method continuesWord(string character, bool number): bool {
+        return isWordCharacter(character) || character == "_" || (number && character == ".")
+    }
+
+    method wordClass(string word, integer end): string {
+        if (this.spec.keywords.has(word)) {
+            return "tok-kw"
+        }
+        if (this.spec.types.has(word) || (this.spec.capitalizedTypes && isCapitalized(word))) {
+            return "tok-type"
+        }
+        var next = this.source.substring(end, end + 1)
+        if (next == "(") {
+            return "tok-fn"
+        }
+        if (this.spec.keyed && this.followedByKeySeparator(end)) {
+            return "tok-type"
+        }
+        return ""
+    }
+
+    method followedByKeySeparator(integer from): bool {
+        var index = from
+        while (index < this.source.length() && this.source.charAt(index) == " ") {
+            index = index + 1
+        }
+        var character = this.source.substring(index, index + 1)
+        return character == ":" || character == "="
+    }
+}
+
+method isWordStart(string character): bool {
+    return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z") || character == "_"
+}
+
+method isCapitalized(string word): bool {
+    var first = word.charAt(0)
+    return first >= "A" && first <= "Z" && word.length() > 1 && word.toUpper() != word
+}
+
+method characterClass(string character): string {
+    if (PUNCTUATION.contains(character)) {
+        return "tok-punct"
+    }
+    if (OPERATORS.contains(character)) {
+        return "tok-op"
+    }
+    return ""
+}

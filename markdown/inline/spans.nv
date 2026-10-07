@@ -1,0 +1,94 @@
+package inline
+
+import markdown/escape
+
+final MAX_ENTITY_LENGTH = 32
+
+// `code`: a run of backticks closed by a run of the same length.
+method matchCodeSpan(string source, integer start): Match {
+    var runEnd = runOf(source, start, "`")
+    var length = runEnd - start
+    var search = runEnd
+    while (search < source.length()) {
+        var open = source.indexOf("`", search)
+        if (open < 0) {
+            return
+        }
+        var close = runOf(source, open, "`")
+        if (close - open == length) {
+            return Match("<code>" + htmlEscape(codeContent(source.substring(runEnd, open))) + "</code>", close)
+        }
+        search = close
+    }
+    return
+}
+
+// One space on each side is padding, unless the code is only spaces.
+method codeContent(string raw): string {
+    var content = raw.replace("\n", " ")
+    if (content.length() > 2 && content.startsWith(" ") && content.endsWith(" ") && content.trim() != "") {
+        return content.substring(1, content.length() - 1)
+    }
+    return content
+}
+
+// The index just past the run of `character` that starts at `start`.
+method runOf(string source, integer start, string character): integer {
+    var end = start
+    while (end < source.length() && source.charAt(end) == character) {
+        end = end + 1
+    }
+    return end
+}
+
+// `&name;`, `&#123;` and `&#x1F;` stay entities, any other `&` is text.
+method matchEntity(string source, integer start): Match {
+    var close = source.indexOf(";", start)
+    if (close < 0 || close - start > MAX_ENTITY_LENGTH || close - start < 2) {
+        return Match("&amp;", start + 1)
+    }
+    var name = source.substring(start + 1, close)
+    if (isEntityName(name)) {
+        return Match("&" + name + ";", close + 1)
+    }
+    return Match("&amp;", start + 1)
+}
+
+method isEntityName(string name): bool {
+    var body = name
+    if (body.startsWith("#")) {
+        body = body.substring(1, body.length())
+    }
+    if (body == "") {
+        return false
+    }
+    for (character in body) {
+        if (isWordCharacter(character) == false) {
+            return false
+        }
+    }
+    return true
+}
+
+// A backslash before punctuation makes it literal; before a line end it is a hard break.
+method matchBackslash(string source, integer start): Match {
+    if (start + 1 >= source.length()) {
+        return Match("\\", start + 1)
+    }
+    var next = source.charAt(start + 1)
+    if (next == "\n") {
+        return Match("<br />\n", skipSpaces(source, start + 2))
+    }
+    if (isAsciiPunctuation(next)) {
+        return Match(htmlEscape(next), start + 2)
+    }
+    return Match("\\", start + 1)
+}
+
+method skipSpaces(string source, integer start): integer {
+    var index = start
+    while (index < source.length() && source.charAt(index) == " ") {
+        index = index + 1
+    }
+    return index
+}

@@ -1,0 +1,35 @@
+frontmatter:
+  description = [if, while: for]
+  empty = []
+  name = [Ada]
+  title = [Control flow]
+body: [# Body\n]
+frontmatter:
+body: [no frontmatter\n---\nnot: meta\n---]
+frontmatter:
+body: [---\nunterminated: yes\n\ntext]
+frontmatter:
+  title = [CRLF]
+body: [Body]
+frontmatter:
+body: []
+hello-world-its-2026-ünï_code
+
+a-b-c
+h1 #one One
+h2 #two Two
+h2 #two-1 Two
+h3 #three-code Three code
+h1 #one-1 One
+h1 #section 
+h1 #section-1 
+h2 #setext Setext
+h1 #intro 
+h2 #api_v2 Name
+h2 #plain Plain {#}
+h2 #plain-x Plain {# x}
+h3 #same Same
+h3 #same-1 Other
+<h1 id="intro"><a class="heading-anchor" href="#intro">0</a></h1>
+
+Title Some bold text & tags. a b

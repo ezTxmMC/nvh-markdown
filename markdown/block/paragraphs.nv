@@ -1,0 +1,28 @@
+package block
+
+import markdown/inline
+import markdown/leaf
+import markdown/model
+
+// A paragraph runs to the next blank line or the next line that starts another block; a `===` or
+// `---` line under it turns it into a heading.
+method matchParagraph(array<string> lines, integer start, Context context, bool tight): BlockMatch {
+    var text = [stripLeading(lines[start])]
+    var index = start + 1
+    while (index < lines.length() && isBlankLine(lines[index]) == false) {
+        var level = setextLevel(lines[index])
+        if (level > 0) {
+            return BlockMatch(headingHtml(level, text.join("\n").trim(), context), index + 1)
+        }
+        if (interruptsParagraph(lines[index])) {
+            break
+        }
+        text.append(stripLeading(lines[index]))
+        index = index + 1
+    }
+    var body = renderInline(text.join("\n").trim(), context)
+    if (tight) {
+        return BlockMatch(body + "\n", index)
+    }
+    return BlockMatch("<p>" + body + "</p>\n", index)
+}

@@ -1,0 +1,19 @@
+package highlight
+
+import markdown/escape
+
+// Source code -> HTML with <span class="tok-..."> around keywords, strings, numbers, comments,
+// calls, types, operators and punctuation. An unknown language is only escaped.
+method highlightCode(string language, string code): string {
+    var canonical = canonicalLanguage(language)
+    if (canonical == "") {
+        return htmlEscape(code)
+    }
+    var buffer = TokenBuffer()
+    if (canonical == "markup") {
+        scanMarkup(buffer, code)
+        return buffer.html()
+    }
+    scanCode(buffer, specFor(canonical), code)
+    return buffer.html()
+}

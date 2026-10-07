@@ -1,0 +1,66 @@
+<p>Hello <M0>!</p>
+
+<p>Hello &lt;World&gt;!</p>
+
+<h1 id="title"><a class="heading-anchor" href="#title"><M0> title</a></h1>
+
+<h1 id="title"><a class="heading-anchor" href="#title">Doc title</a></h1>
+
+<p><strong><M0></strong> and <em><M1></em> and <code>code</code></p>
+
+<p><strong>bold</strong> and <em>7</em> and <code>code</code></p>
+
+<p><a href="/x/<M1>"><M0></a> <img src="<M1>.png" alt="<M0>" /></p>
+
+<p><a href="/x/id">label</a> <img src="id.png" alt="label" /></p>
+
+<div class="table-wrapper"><table>
+<thead>
+<tr><th><M0></th><th>b</th></tr>
+</thead>
+<tbody>
+<tr><td><M1></td><td><M0></td></tr>
+</tbody>
+</table></div>
+
+<div class="table-wrapper"><table>
+<thead>
+<tr><th>h</th><th>b</th></tr>
+</thead>
+<tbody>
+<tr><td>c</td><td>h</td></tr>
+</tbody>
+</table></div>
+
+<ul>
+<li><M0></li>
+<li class="task-list-item"><input type="checkbox" disabled checked /> <M1></li>
+</ul>
+
+<ul>
+<li>one</li>
+<li class="task-list-item"><input type="checkbox" disabled checked /> two</li>
+</ul>
+
+<p><span class="<M0>"><M1></span></p>
+
+<p><span class="cls">text</span></p>
+
+<p>snake_<M0>_case <M0><M1><M0></p>
+
+<p>snake_a_case aba</p>
+
+<p>no markers &amp; <b></p>
+
+<p>no markers &amp; <b></p>
+
+<p>missing <M5> and <M0></p>
+
+<p>missing  and only</p>
+
+<p>unset <M0></p>
+
+<p>unset 
+broken 12
+empty |
+number 42 true

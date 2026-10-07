@@ -1,0 +1,42 @@
+package inline
+
+import strings
+
+// A piece of inline output: finished HTML, or a run of emphasis delimiters (`*`, `_`, `~`) that is
+// resolved once the whole text is scanned.
+define class Piece {
+    string html
+    string mark
+    integer count
+    integer originalCount
+    bool canOpen
+    bool canClose
+    string openTags
+    string closeTags
+
+    construct(string html, string mark, integer count, bool canOpen, bool canClose) {
+        this.html = html
+        this.mark = mark
+        this.count = count
+        this.originalCount = count
+        this.canOpen = canOpen
+        this.canClose = canClose
+        this.openTags = ""
+        this.closeTags = ""
+    }
+
+    method isDelimiter(): bool {
+        return this.mark != ""
+    }
+
+    method render(): string {
+        if (this.isDelimiter() == false) {
+            return this.html
+        }
+        return this.closeTags + strings.repeat(this.mark, this.count) + this.openTags
+    }
+}
+
+method textPiece(string html): Piece {
+    return Piece(html, "", 0, false, false)
+}

@@ -1,0 +1,21 @@
+package main
+
+import os
+import "github.com/ezTxmMC/nvh-markdown/nvmd"
+
+// The translator on one fixture per shape: frontmatter, header, both, none, blocks, handlers.
+// The generated file has as many lines as the source (an error of the compiler points at the right line).
+
+final FIXTURES = ["front", "header", "plain", "frontheader", "blocks", "handlers", "headingid"]
+
+method main {
+    for (name in FIXTURES) {
+        var file = "fixtures/nvmd/" + name + ".nvmd"
+        var source = os.readFile(file)
+        var generated = nvmd.translate(source, file)
+        println "=== " + name
+        println generated
+        println "lines: " + source.split(chr(10)).length() + " -> " + generated.split(chr(10)).length()
+        println "generated: " + nvmd.isGenerated(generated)
+    }
+}

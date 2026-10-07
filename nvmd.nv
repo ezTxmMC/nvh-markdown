@@ -1,0 +1,93 @@
+package main
+
+import cli
+import nvmd
+import os
+
+// novusc run nvmd.nv <command> [paths...]
+//
+//   build <dir|file>...      write name.nvh next to every name.nvmd (only what changed; --force: all)
+//   watch <dir|file>...      build again whenever a .nvmd changes (Ctrl+C ends it)
+//   translate <file.nvmd>    print the .nvh source of one file
+//   clean <dir|file>...      remove the .nvh files that were generated
+//   check <dir|file>... [--main main.nv] [--novusc novusc]
+//                            build, then `novusc check` the program; its errors name the .nvmd lines
+//   --version
+
+final USAGE = "usage: nvmd <build|watch|translate|clean|check> <paths...> [--force] [--main main.nv] [--novusc cmd]"
+
+method pathsOf(map<string, object> parsed): array<string> {
+    var paths = []
+    var index = 1
+    while (cli.argument(parsed, index, "") != "") {
+        paths.append(cli.argument(parsed, index, ""))
+        index = index + 1
+    }
+    return paths
+}
+
+method runBuild(array<string> paths, bool force): integer {
+    var report = nvmd.build(paths, force)
+    for (file in report.written) {
+        println "wrote " + file
+    }
+    println report.written.length() + " written, " + report.unchanged.length() + " unchanged"
+    return 0
+}
+
+method runClean(array<string> paths): integer {
+    var report = nvmd.clean(paths)
+    println report.removed.length() + " removed"
+    return 0
+}
+
+method runTranslate(array<string> paths): integer {
+    if (paths.length() != 1) {
+        eprintln USAGE
+        return 2
+    }
+    if (os.isFile(paths[0]) == false) {
+        eprintln "nvmd: cannot read " + paths[0]
+        return 1
+    }
+    print nvmd.translate(os.readFile(paths[0]), paths[0])
+    return 0
+}
+
+method runCheck(array<string> paths, map<string, object> parsed): integer {
+    var result = nvmd.check(paths, cli.option(parsed, "novusc", os.envOr("NOVUSC", "novusc")), cli.option(parsed, "main", "main.nv"))
+    println result.text
+    return result.code
+}
+
+method runWatch(array<string> paths): integer {
+    println "watching " + paths.join(", ") + " (Ctrl+C ends it)"
+    nvmd.watch(paths)
+    return 0
+}
+
+method main {
+    var parsed = cli.parse(os.args())
+    var action = cli.argument(parsed, 0, "")
+    var paths = pathsOf(parsed)
+    var code = 2
+    if (action == "build" && paths.length() > 0) {
+        code = runBuild(paths, cli.flag(parsed, "force"))
+    }
+    if (action == "watch" && paths.length() > 0) {
+        code = runWatch(paths)
+    }
+    if (action == "translate") {
+        code = runTranslate(paths)
+    }
+    if (action == "check" && paths.length() > 0) {
+        code = runCheck(paths, parsed)
+    }
+    if (action == "clean" && paths.length() > 0) {
+        code = runClean(paths)
+    }
+    if (code == 2) {
+        eprintln USAGE
+    }
+    os.exit(code)
+}

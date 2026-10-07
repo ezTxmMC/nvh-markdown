@@ -1,0 +1,6 @@
+<?nv
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+prop string source = ""
+?>
+<div class="markdown">{@html markdown.render(source)}</div>

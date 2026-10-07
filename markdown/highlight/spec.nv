@@ -1,0 +1,67 @@
+package highlight
+
+// What a language looks like to the highlighter.
+define class LanguageSpec {
+    map<string, bool> keywords
+    map<string, bool> types
+    array<string> lineComments
+    string blockOpen
+    string blockClose
+    string quotes
+    string multilineQuotes
+    string directive
+    bool keyed
+    bool capitalizedTypes
+
+    construct(array<string> keywords, array<string> types, array<string> lineComments, string quotes) {
+        this.keywords = wordSet(keywords)
+        this.types = wordSet(types)
+        this.lineComments = lineComments
+        this.blockOpen = ""
+        this.blockClose = ""
+        this.quotes = quotes
+        this.multilineQuotes = ""
+        this.directive = ""
+        this.keyed = false
+        this.capitalizedTypes = true
+    }
+
+    // Called for `/* ... */` languages.
+    method withBlockComments(string open, string close): LanguageSpec {
+        this.blockOpen = open
+        this.blockClose = close
+        return this
+    }
+
+    method withMultilineQuotes(string quotes): LanguageSpec {
+        this.multilineQuotes = quotes
+        return this
+    }
+
+    // A line that starts with `character` (the `#` of the C preprocessor) is a keyword line.
+    method withDirective(string character): LanguageSpec {
+        this.directive = character
+        return this
+    }
+
+    // `name:` and `name =` at the start of a value are keys.
+    method withKeys(): LanguageSpec {
+        this.keyed = true
+        this.capitalizedTypes = false
+        return this
+    }
+
+    // Languages whose capitalised words are not types (shell commands, data files).
+    method withoutCapitalizedTypes(): LanguageSpec {
+        this.capitalizedTypes = false
+        return this
+    }
+}
+
+method wordSet(array<string> words): map<string, bool> {
+    var set = {}
+    for (word in words) {
+        set[word] = true
+    }
+    return set
+}

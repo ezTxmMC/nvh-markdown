@@ -1,0 +1,8 @@
+package main
+
+import web
+import @Broken
+
+method main {
+    println web.document(web.view(Broken()), false)
+}

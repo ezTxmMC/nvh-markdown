@@ -1,0 +1,193 @@
+package highlight
+
+import markdown/escape
+
+final TAG_PUNCTUATION = "<>/"
+
+// HTML, nvh and nvmd: tags, attributes, comments, `{expr}` and `<?nv ... ?>` blocks. Novus code
+// inside them is highlighted like Novus.
+method scanMarkup(TokenBuffer buffer, string source) {
+    MarkupScanner(buffer, source).run()
+}
+
+define class MarkupScanner {
+    TokenBuffer buffer
+    LanguageSpec novus
+    string source
+    integer position
+
+    construct(TokenBuffer buffer, string source) {
+        this.buffer = buffer
+        this.novus = specFor("nv")
+        this.source = source
+        this.position = 0
+    }
+
+    method run() {
+        while (this.position < this.source.length()) {
+            this.step()
+        }
+    }
+
+    method step() {
+        var character = this.source.charAt(this.position)
+        if (this.startsWith("<!--")) {
+            this.comment()
+            return
+        }
+        if (this.startsWith("<?nv")) {
+            this.novusBlock()
+            return
+        }
+        if (character == "<" && this.startsTag()) {
+            this.tag()
+            return
+        }
+        if (character == "{") {
+            this.expression()
+            return
+        }
+        this.text()
+    }
+
+    // `<` opens a tag only before a name, `/` or `!`: `a < b` is text.
+    method startsTag(): bool {
+        var next = this.source.substring(this.position + 1, this.position + 2)
+        return next == "/" || next == "!" || (next != "" && isWordStart(next))
+    }
+
+    method startsWith(string marker): bool {
+        return this.source.substring(this.position, this.position + marker.length()) == marker
+    }
+
+    method take(string className, integer end) {
+        this.buffer.add(className, this.source.substring(this.position, end))
+        this.position = end
+    }
+
+    method text() {
+        var end = this.position + 1
+        while (end < this.source.length() && this.source.charAt(end) != "<" && this.source.charAt(end) != "{") {
+            end = end + 1
+        }
+        this.take("", end)
+    }
+
+    method comment() {
+        var close = this.source.indexOf("-->", this.position)
+        var end = this.source.length()
+        if (close >= 0) {
+            end = close + 3
+        }
+        this.take("tok-com", end)
+    }
+
+    // `<?nv ... ?>`: the delimiters, then the Novus code between them.
+    method novusBlock() {
+        this.take("tok-kw", this.position + 4)
+        var close = this.source.indexOf("?>", this.position)
+        var end = this.source.length()
+        if (close >= 0) {
+            end = close
+        }
+        scanCode(this.buffer, this.novus, this.source.substring(this.position, end))
+        this.position = end
+        this.take("tok-kw", smallerOf(this.position + 2, this.source.length()))
+    }
+
+    // `{expr}`, `{#if x}`, `{/for}`: braces are punctuation, the inside is Novus.
+    method expression() {
+        var close = this.source.indexOf("}", this.position)
+        if (close < 0) {
+            this.take("tok-punct", this.position + 1)
+            return
+        }
+        this.take("tok-punct", this.position + 1)
+        scanCode(this.buffer, this.novus, this.source.substring(this.position, close))
+        this.position = close
+        this.take("tok-punct", close + 1)
+    }
+
+    method tag() {
+        this.take("tok-punct", this.position + this.openerLength())
+        this.tagName()
+        while (this.position < this.source.length() && this.source.charAt(this.position) != ">") {
+            this.attribute()
+        }
+        this.take("tok-punct", smallerOf(this.position + 1, this.source.length()))
+    }
+
+    method openerLength(): integer {
+        if (this.startsWith("</")) {
+            return 2
+        }
+        return 1
+    }
+
+    method tagName() {
+        var end = this.position
+        while (end < this.source.length() && (isWordCharacter(this.source.charAt(end)) || this.source.charAt(end) == "-")) {
+            end = end + 1
+        }
+        var name = this.source.substring(this.position, end)
+        if (name != "" && isCapitalized(name)) {
+            this.take("tok-type", end)
+            return
+        }
+        this.take("tok-kw", end)
+    }
+
+    // One attribute piece: a name, `=`, a quoted value, a `{expr}` value, or a separator.
+    method attribute() {
+        var character = this.source.charAt(this.position)
+        if (isBlankCharacter(character)) {
+            this.take("", this.position + 1)
+            return
+        }
+        if (character == "\"" || character == "'") {
+            this.quoted(character)
+            return
+        }
+        if (character == "{") {
+            this.expression()
+            return
+        }
+        if (character == "=") {
+            this.take("tok-op", this.position + 1)
+            return
+        }
+        if (character == "/") {
+            this.take("tok-punct", this.position + 1)
+            return
+        }
+        this.attributeName()
+    }
+
+    method quoted(string quote) {
+        var close = this.source.indexOf(quote, this.position + 1)
+        var end = this.source.length()
+        if (close >= 0) {
+            end = close + 1
+        }
+        this.take("tok-str", end)
+    }
+
+    method attributeName() {
+        var end = this.position + 1
+        while (end < this.source.length() && this.continuesAttributeName(this.source.charAt(end))) {
+            end = end + 1
+        }
+        this.take("tok-fn", end)
+    }
+
+    method continuesAttributeName(string character): bool {
+        return isBlankCharacter(character) == false && "=>/{\"'".contains(character) == false
+    }
+}
+
+method smallerOf(integer left, integer right): integer {
+    if (left < right) {
+        return left
+    }
+    return right
+}

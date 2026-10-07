@@ -1,0 +1,12 @@
+<?nv
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+prop string text = "# Hi\n\nSome *text*.\n\n## Part\n\n### Sub\n\n#### Deep"
+?>
+<main>
+    <Markdown source={text} />
+    <Toc headings={markdown.headings(text)} />
+    <Callout type="warning" title="Careful">inside slot</Callout>
+    <Callout type="tip">default title</Callout>
+    <CodeBlock language="nv" code="var x = 1" />
+</main>

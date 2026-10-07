@@ -1,0 +1,43 @@
+package block
+
+import markdown/leaf
+
+// `> quoted` blocks; a line that continues the paragraph inside may leave out the `>`.
+method matchQuote(array<string> lines, integer start, Context context): BlockMatch {
+    if (isQuoteLine(lines[start]) == false) {
+        return
+    }
+    var inner = []
+    var index = start
+    while (index < lines.length()) {
+        var line = lines[index]
+        if (isQuoteLine(line)) {
+            inner.append(unquote(line))
+            index = index + 1
+            continue
+        }
+        if (continuesQuote(line, inner)) {
+            inner.append(line)
+            index = index + 1
+            continue
+        }
+        break
+    }
+    return BlockMatch("<blockquote>\n" + renderBlocks(inner, context, false) + "</blockquote>\n", index)
+}
+
+method unquote(string line): string {
+    var body = line.trim()
+    var rest = body.substring(1, body.length())
+    if (rest.startsWith(" ")) {
+        return rest.substring(1, rest.length())
+    }
+    return rest
+}
+
+method continuesQuote(string line, array<string> inner): bool {
+    if (isBlankLine(line) || inner.length() == 0 || isBlankLine(inner[inner.length() - 1])) {
+        return false
+    }
+    return interruptsParagraph(line) == false
+}

@@ -1,0 +1,20 @@
+<main data-nv="c1">
+    <div class="markdown" data-nv="c2"><h1 id="hi"><a class="heading-anchor" href="#hi">Hi</a></h1>
+<p>Some <em>text</em>.</p>
+<h2 id="part"><a class="heading-anchor" href="#part">Part</a></h2>
+<h3 id="sub"><a class="heading-anchor" href="#sub">Sub</a></h3>
+<h4 id="deep"><a class="heading-anchor" href="#deep">Deep</a></h4>
+</div>
+    <nav aria-label="Table of contents" class="toc" data-nv="c3">
+    <ul class="toc-list"><li class="toc-item toc-level-2"><a href="#part">Part</a></li><li class="toc-item toc-level-3"><a href="#sub">Sub</a></li></ul>
+</nav>
+    <aside role="note" class="callout callout-warning" data-nv="c4">
+    <p class="callout-title">Careful</p>
+    <div class="callout-body">inside slot</div>
+</aside>
+    <aside role="note" class="callout callout-tip" data-nv="c5">
+    <p class="callout-title">Tip</p>
+    <div class="callout-body">default title</div>
+</aside>
+    <pre data-language="nv" class="code-block" data-nv="c6"><code class="language-nv"><span class="tok-kw">var</span> x <span class="tok-op">=</span> <span class="tok-num">1</span></code></pre>
+</main>

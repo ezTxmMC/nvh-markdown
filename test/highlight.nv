@@ -1,0 +1,19 @@
+package main
+
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+
+method main {
+    println markdown.highlight("nv", "// c\nmethod main {\n    var s = \"a\\\"b\" + 0x1f\n    println Point{x=1.5}.area()\n}")
+    println markdown.highlight("novus", "/* open comment")
+    println markdown.highlight("nvh", "<?nv\nprop string title = \"x\"\n?>\n<Layout title={title} @click=\"go(1)\">\n  {#for a in xs}<b class=\"a\">{a}</b>{/for}\n</Layout>")
+    println markdown.highlight("html", "<p>a < b</p><br/><img src=x>")
+    println markdown.highlight("sh", "# build\nmake && echo \"done\" > out.txt")
+    println markdown.highlight("json", "{\"a\": [1, 2.5, true, null], \"b\": \"x\"}")
+    println markdown.highlight("c", "#define X 1\nstatic int f(const char *s) { return s[0] == 'a'; /* ok */ }")
+    println markdown.highlight("js", "const f = async (x) => `t $" + "{x}\nmore`;")
+    println markdown.highlight("toml", "[server]\nport = 8080 # p\nname = \"n\"")
+    println markdown.highlight("yaml", "key: value\nlist:\n  - true")
+    println markdown.highlight("unknown", "<tag> & \"q\"")
+    println markdown.highlight("", "")
+    println markdown.highlight("nv", "\"unterminated string")
+}

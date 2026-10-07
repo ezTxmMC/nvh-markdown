@@ -1,0 +1,95 @@
+=== front
+<?nv /* nvmd-generated */
+prop string title = "Control flow"
+prop string description = "if, {while} and for"
+prop string level = "two"
+import "github.com/ezTxmMC/nvh-markdown/markdown" ?>
+{@html markdown.fill(markdown.render("
+# 0
+
+Text with 1 and {literal} braces.
+"), [title, title.toUpper()])}
+lines: 10 -> 10
+generated: true
+=== header
+
+<?nv /* nvmd-generated */
+import strings
+prop integer level = 1
+import "github.com/ezTxmMC/nvh-markdown/markdown" ?>
+{@html markdown.fill(markdown.render("# Header only
+
+Level 0.
+"), [level + 1])}
+lines: 9 -> 9
+generated: true
+=== plain
+<?nv /* nvmd-generated */ import "github.com/ezTxmMC/nvh-markdown/markdown" ?>{@html markdown.render("# Plain
+
+Nothing but **Markdown** and `{not interpolated}`.
+")}
+lines: 4 -> 4
+generated: true
+=== frontheader
+<?nv /* nvmd-generated */
+prop string title = "Both"
+
+
+import strings
+ref integer clicks = 0
+method hit() { clicks = clicks + 1 }
+import "github.com/ezTxmMC/nvh-markdown/markdown" ?>
+{@html markdown.fill(markdown.render("0
+"), [title])}
+lines: 10 -> 10
+generated: true
+=== blocks
+<?nv /* nvmd-generated */ import "github.com/ezTxmMC/nvh-markdown/markdown" ?>{@html markdown.fill(markdown.render("Intro 0
+"), [1 + 1])}
+{#if true}
+{@html markdown.fill(markdown.render("indented **segment**
+- item 0"), [2])}
+{:else}
+{@html markdown.render("other")}
+{/if}
+
+{#for name, i in ["a", "b"]}
+{@html markdown.fill(markdown.render("- 0: 1"), [i, name])}
+{/for}
+
+<Callout
+    type="warning">
+{@html markdown.render("Children are *Markdown*.")}
+</Callout>
+{@html markdown.render("
+~~~nv
+println \"$" + "{x} { } stay\"
+~~~
+")}
+<?nv var total = 3 ?>
+
+{@html "<b>raw</b>"}
+{@html markdown.fill(markdown.render("Quote \" and \\ backslash and $0
+"), [dollar])}
+lines: 27 -> 27
+generated: true
+=== handlers
+<?nv /* nvmd-generated */ import "github.com/ezTxmMC/nvh-markdown/markdown" ?>{@html markdown.render("# Handlers
+")}
+<button @click="hit">Clicked {clicks} times</button>
+<input bind="draft">
+{@html markdown.render("
+A <b>plain</b> html line stays Markdown.
+")}
+<p class:big={clicks > 3}>text</p>
+<div>no handler here</div>
+
+lines: 10 -> 10
+generated: true
+=== headingid
+<?nv /* nvmd-generated */ import "github.com/ezTxmMC/nvh-markdown/markdown" ?>{@html markdown.fill(markdown.render("# 0 {#intro}
+
+Text 1
+"), [title, a])}
+lines: 4 -> 4
+generated: true

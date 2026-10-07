@@ -1,0 +1,25 @@
+---
+title: End to end
+---
+<?nv
+ref integer clicks = 0
+method hit() { clicks = clicks + 1 }
+?>
+
+# {title}
+
+Plain **Markdown**, `inline {code}` and {title.toUpper()} / {1 + 1}.
+
+{#for name in ["Ada", "Grace"]}
+- {name}
+{/for}
+
+<Callout type="tip">
+Children are **Markdown** as well.
+</Callout>
+
+<button @click="hit">Clicked {clicks} times</button>
+
+```nv
+println "{ braces } stay"
+```

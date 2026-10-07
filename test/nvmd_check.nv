@@ -1,0 +1,13 @@
+package main
+
+import os
+import "github.com/ezTxmMC/nvh-markdown/nvmd"
+
+// check: the compiler's error about e2e_check/Broken.nvh is reported for Broken.nvmd, with the segment's first line.
+
+method main {
+    var result = nvmd.check(["e2e_check"], os.env("NOVUSC"), "e2e_check/main.nv")
+    println "exit " + result.code
+    println result.text
+    nvmd.clean(["e2e_check"])
+}

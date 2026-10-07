@@ -1,0 +1,6 @@
+project "example.com/nvmd-e2e"
+version "0.0.0"
+main "main.nv"
+
+require "github.com/ezTxmMC/nvh-markdown"
+replace "github.com/ezTxmMC/nvh-markdown" "../.."

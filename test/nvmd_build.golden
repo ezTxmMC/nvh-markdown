@@ -1,0 +1,9 @@
+first: written 2, unchanged 0, removed 0
+again: written 0, unchanged 2, removed 0
+forced: written 2, unchanged 0, removed 0
+changed: written 1, unchanged 1, removed 0
+a.nvh starts: <?nv /* nvmd-generated */ impo
+refused: exit 1 | error: work/b.nvmd:1: work/b.nvh exists and was not generated from a .nvmd file: it is not overwritten
+hand-written kept: <p>mine</p>
+clean: written 0, unchanged 0, removed 3
+hand.nvh kept: true, a.nvh gone: true, orphan gone: true

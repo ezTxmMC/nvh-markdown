@@ -1,0 +1,10 @@
+package main
+
+import web
+import "github.com/ezTxmMC/nvh-markdown/components"
+import "github.com/ezTxmMC/nvh-markdown/markdown"
+import @fixtures/Demo
+
+method main {
+    println web.renderHtml(Demo())
+}

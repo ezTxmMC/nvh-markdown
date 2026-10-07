@@ -1,0 +1,74 @@
+package nvmd
+
+// The body of a .nvmd file: Markdown segments, and between them the lines that are Novus - blocks, code,
+// components and HTML with handlers - which stay as they are.
+
+// Appends one row per body line to `rows`. A segment collects [text, literal] pairs: the lines of a
+// fenced code block are literal, braces in them are text.
+method translateBody(array<string> lines, integer from, string file, array<string> rows) {
+    var segment = []
+    var fence = ""
+    var index = from
+    while (index < lines.length()) {
+        var line = lines[index]
+        if (fence != "") {
+            segment.append([line, true])
+            index = index + 1
+            fence = fenceAfter(line, fence)
+            continue
+        }
+        var opened = fenceMarker(line)
+        if (opened != "") {
+            segment.append([line, true])
+            index = index + 1
+            fence = opened
+            continue
+        }
+        var end = constructEnd(lines, index, file)
+        if (end < index) {
+            segment.append([line, false])
+            index = index + 1
+            continue
+        }
+        flushSegment(segment, file, index - segment.length(), rows)
+        segment = []
+        while (index <= end) {
+            rows.append(lines[index])
+            index = index + 1
+        }
+    }
+    flushSegment(segment, file, index - segment.length(), rows)
+}
+
+// ``` or ~~~ (three or more) at the start of a line: the marker, "" when the line is none.
+method fenceMarker(string line): string {
+    var trimmed = line.trim()
+    if (trimmed.length() < 3) {
+        return ""
+    }
+    var fenceChar = trimmed.charAt(0)
+    if (fenceChar != "`" && fenceChar != "~") {
+        return ""
+    }
+    var count = 0
+    while (count < trimmed.length() && trimmed.charAt(count) == fenceChar) {
+        count = count + 1
+    }
+    if (count < 3) {
+        return ""
+    }
+    return trimmed.substring(0, count)
+}
+
+// The fence that is open after `line`: "" when the line closes it, a closing fence being nothing but
+// fence characters, as many as the opening one had.
+method fenceAfter(string line, string marker): string {
+    var closing = fenceMarker(line)
+    if (closing == "" || closing.charAt(0) != marker.charAt(0) || closing.length() < marker.length()) {
+        return marker
+    }
+    if (closing.length() != line.trim().length()) {
+        return marker
+    }
+    return ""
+}
